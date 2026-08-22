@@ -1,0 +1,604 @@
+<title>LCD Screen Builder</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600&display=swap">
+
+<style>
+/* ── Tokens (dark-first) ─────────────────────────────────────── */
+:root {
+  --bg:        #0b0d12;
+  --surface:   #131825;
+  --surface2:  #1a2235;
+  --border:    #1e2a40;
+  --text:      #b8c8e0;
+  --text-dim:  #4e607c;
+  --text-hi:   #dce8f8;
+  --accent:    #00e87a;
+  --radius:    8px;
+
+  /* LCD segment tokens — default = green */
+  --lcd-bg:    #090f09;
+  --lcd-on:    #39ff14;
+  --lcd-off:   #0d220d;
+  --lcd-glow:  rgba(57,255,20,0.45);
+  --lcd-bezel: #18201a;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:       #d8dfe8;
+    --surface:  #e8edf4;
+    --surface2: #f2f5f9;
+    --border:   #c0cad6;
+    --text:     #2a3548;
+    --text-dim: #7a8a9e;
+    --text-hi:  #141e2e;
+    --accent:   #009a54;
+    --lcd-bezel:#1e2820;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#0b0d12;--surface:#131825;--surface2:#1a2235;--border:#1e2a40;
+  --text:#b8c8e0;--text-dim:#4e607c;--text-hi:#dce8f8;--accent:#00e87a;--lcd-bezel:#18201a;
+}
+:root[data-theme="light"] {
+  --bg:#d8dfe8;--surface:#e8edf4;--surface2:#f2f5f9;--border:#c0cad6;
+  --text:#2a3548;--text-dim:#7a8a9e;--text-hi:#141e2e;--accent:#009a54;--lcd-bezel:#1e2820;
+}
+
+/* ── LCD Colour Themes ───────────────────────────────────────── */
+.t-green { --lcd-bg:#090f09; --lcd-on:#39ff14; --lcd-off:#0c1e0c; --lcd-glow:rgba(57,255,20,0.45); }
+.t-amber { --lcd-bg:#120a00; --lcd-on:#ffaa00; --lcd-off:#231200; --lcd-glow:rgba(255,170,0,0.45); }
+.t-red   { --lcd-bg:#130004; --lcd-on:#ff2244; --lcd-off:#230006; --lcd-glow:rgba(255,34,68,0.45); }
+.t-blue  { --lcd-bg:#000d1c; --lcd-on:#00bbff; --lcd-off:#001428; --lcd-glow:rgba(0,187,255,0.45); }
+.t-white { --lcd-bg:#161616; --lcd-on:#f0f0f0; --lcd-off:#2c2c2c; --lcd-glow:rgba(240,240,240,0.2); }
+.t-neg   { --lcd-bg:#8fc08a; --lcd-on:#162c14; --lcd-off:#a0cea0; --lcd-glow:rgba(0,0,0,0); }
+
+/* ── Reset ───────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:'Inter',system-ui,sans-serif;font-size:13px;line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+
+/* ── App Shell ───────────────────────────────────────────────── */
+.app{display:grid;grid-template-rows:50px 1fr;height:100vh;overflow:hidden}
+
+/* Header */
+.hdr{display:flex;align-items:center;padding:0 18px;gap:14px;
+  background:var(--surface);border-bottom:1px solid var(--border)}
+.hdr-logo{font-family:'Share Tech Mono',monospace;font-size:13px;
+  color:var(--accent);letter-spacing:.1em}
+.hdr-logo span{opacity:.35}
+.hdr-space{flex:1}
+.hdr-btn{background:none;border:1px solid var(--border);color:var(--text-dim);
+  border-radius:5px;padding:4px 10px;cursor:pointer;font:inherit;font-size:12px;
+  transition:border-color .15s,color .15s}
+.hdr-btn:hover{border-color:var(--accent);color:var(--text)}
+
+/* Body */
+.body{display:grid;grid-template-columns:1fr 292px;overflow:hidden}
+
+/* ── Preview ─────────────────────────────────────────────────── */
+.preview{background:var(--bg);display:flex;align-items:center;justify-content:center;
+  padding:40px;overflow:hidden;position:relative}
+.preview::before{
+  content:'';position:absolute;inset:0;
+  background-image:radial-gradient(circle,var(--border) 1px,transparent 1px);
+  background-size:28px 28px;opacity:.4;pointer-events:none}
+
+/* Device casing */
+.device{position:relative;z-index:1;background:var(--lcd-bezel);
+  border-radius:14px;padding:18px 22px 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    inset 0 -2px 0 rgba(0,0,0,.5),
+    0 24px 72px rgba(0,0,0,.7),
+    0 6px 24px rgba(0,0,0,.5)}
+.device-label{font-family:'Share Tech Mono',monospace;font-size:8px;
+  letter-spacing:.22em;color:rgba(255,255,255,.12);text-transform:uppercase;
+  text-align:right;margin-bottom:10px}
+.device-screws{display:flex;justify-content:space-between;margin-bottom:8px;padding:0 2px}
+.screw{width:7px;height:7px;border-radius:50%;background:rgba(0,0,0,.4);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);position:relative}
+.screw::after{content:'';position:absolute;inset:2px;border-radius:50%;
+  background:linear-gradient(135deg,rgba(255,255,255,.08),transparent)}
+
+/* LCD screen */
+.screen{background:var(--lcd-bg);border-radius:5px;
+  padding:14px 16px;overflow:hidden;position:relative;
+  box-shadow:inset 0 2px 10px rgba(0,0,0,.7),0 0 0 1px rgba(0,0,0,.6)}
+.screen::after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:5px;
+  background:repeating-linear-gradient(to bottom,transparent,transparent 2px,
+    rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px)}
+
+#lcd{display:block;transition:opacity .1s}
+
+/* Segment colours via CSS var cascade */
+.seg-on{fill:var(--lcd-on)}
+.seg-off{fill:var(--lcd-off)}
+
+/* Blink */
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.blinking{animation:blink var(--blink-dur,800ms) step-end infinite}
+
+/* ── Controls sidebar ────────────────────────────────────────── */
+.sidebar{background:var(--surface);border-left:1px solid var(--border);
+  overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.sidebar::-webkit-scrollbar{width:3px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* Groups */
+.grp{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.grp-hdr{padding:7px 11px;font-size:9px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--border)}
+.grp-body{padding:11px;display:flex;flex-direction:column;gap:9px}
+
+/* Text input */
+.lcd-input{width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:6px;padding:7px 10px;color:var(--text-hi);
+  font-family:'Share Tech Mono',monospace;font-size:14px;letter-spacing:.04em;
+  outline:none;transition:border-color .15s}
+.lcd-input:focus{border-color:var(--accent)}
+
+/* Info row */
+.info{font-size:11px;color:var(--text-dim);display:flex;justify-content:space-between}
+.info-count{font-family:'Share Tech Mono',monospace;font-size:11px}
+
+/* Slider rows */
+.row{display:flex;align-items:center;gap:8px}
+.row-label{font-size:12px;color:var(--text-dim);flex:1;white-space:nowrap}
+.row-val{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text);
+  min-width:30px;text-align:right}
+input[type=range]{flex:1;height:2px;accent-color:var(--accent);cursor:pointer;border-radius:1px}
+
+/* Theme pills */
+.pills{display:flex;gap:4px;flex-wrap:wrap}
+.pill{flex:1;min-width:34px;padding:5px 3px;border:1px solid transparent;
+  border-radius:5px;font-size:10px;font-weight:600;letter-spacing:.03em;
+  cursor:pointer;text-align:center;background:var(--bg);color:var(--text-dim);transition:all .15s}
+.pill:hover{border-color:var(--border);color:var(--text)}
+.pill.on{border-color:currentColor}
+.tp-green{color:#39ff14}.tp-amber{color:#ffaa00}.tp-red{color:#ff4455}
+.tp-blue{color:#00bbff}.tp-white{color:#888}.tp-neg{color:#3a8030}
+
+/* Toggles */
+.tog-row{display:flex;align-items:center;gap:8px}
+.tog-label{font-size:12px;color:var(--text-dim);flex:1}
+.tog{position:relative;width:30px;height:17px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0;position:absolute}
+.tog-sl{position:absolute;inset:0;background:var(--border);border-radius:9px;cursor:pointer;transition:background .2s}
+.tog-sl::after{content:'';position:absolute;top:2px;left:2px;width:13px;height:13px;
+  background:var(--text-dim);border-radius:50%;transition:transform .2s,background .2s}
+.tog input:checked+.tog-sl{background:var(--accent)}
+.tog input:checked+.tog-sl::after{transform:translateX(13px);background:#fff}
+
+/* Anim / align pills */
+.apills{display:flex;gap:4px}
+.apill{flex:1;padding:5px 4px;font-size:11px;font-weight:500;text-align:center;
+  border:1px solid var(--border);border-radius:5px;background:var(--bg);
+  color:var(--text-dim);cursor:pointer;transition:all .15s}
+.apill:hover{color:var(--text)}
+.apill.on{background:var(--accent);border-color:var(--accent);color:#000;font-weight:600}
+
+/* Export buttons */
+.xbtn{width:100%;padding:7px 11px;border:1px solid var(--border);border-radius:6px;
+  background:var(--bg);color:var(--text);font:inherit;font-size:12px;font-weight:500;
+  cursor:pointer;text-align:left;transition:all .15s;display:flex;align-items:center;gap:8px}
+.xbtn:hover{border-color:var(--accent);color:var(--text-hi)}
+.xi{font-size:13px;line-height:1;width:14px;text-align:center;color:var(--text-dim)}
+</style>
+
+<div class="app">
+  <!-- Header -->
+  <header class="hdr">
+    <div class="hdr-logo"><span>[</span> LCD BUILDER <span>]</span></div>
+    <div class="hdr-space"></div>
+    <button class="hdr-btn" id="themeBtn">☀ Light</button>
+  </header>
+
+  <!-- Body -->
+  <div class="body">
+    <!-- Preview -->
+    <div class="preview">
+      <div class="device t-green" id="device">
+        <div class="device-screws">
+          <div class="screw"></div><div class="screw"></div>
+        </div>
+        <div class="device-label">LCD-BUILDER · SEGMENT DISPLAY</div>
+        <div class="screen" id="screen">
+          <svg id="lcd" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+
+      <!-- Text -->
+      <div class="grp">
+        <div class="grp-hdr">Display Text</div>
+        <div class="grp-body">
+          <input class="lcd-input" id="txt" type="text" value="HELLO WORLD"
+            maxlength="64" autocomplete="off" spellcheck="false" placeholder="Type anything…">
+          <div class="info">
+            <span>A–Z · 0–9 · space · - _ . :</span>
+            <span class="info-count" id="ccount">11/12</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Colour theme -->
+      <div class="grp">
+        <div class="grp-hdr">Colour Theme</div>
+        <div class="grp-body">
+          <div class="pills">
+            <button class="pill tp-green on" data-t="green">Green</button>
+            <button class="pill tp-amber" data-t="amber">Amber</button>
+            <button class="pill tp-red"   data-t="red">Red</button>
+            <button class="pill tp-blue"  data-t="blue">Blue</button>
+            <button class="pill tp-white" data-t="white">White</button>
+            <button class="pill tp-neg"   data-t="neg">Neg</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layout -->
+      <div class="grp">
+        <div class="grp-hdr">Layout</div>
+        <div class="grp-body">
+          <div class="row">
+            <span class="row-label">Digits</span>
+            <input type="range" id="digits" min="1" max="20" value="12" step="1">
+            <span class="row-val" id="digitsV">12</span>
+          </div>
+          <div class="row">
+            <span class="row-label">Scale</span>
+            <input type="range" id="scale" min="0.4" max="3" value="1.4" step="0.1">
+            <span class="row-val" id="scaleV">1.4×</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <span class="row-label">Align</span>
+            <div class="apills">
+              <button class="apill" data-al="left">← Left</button>
+              <button class="apill on" data-al="right">Right →</button>
+              <button class="apill" data-al="center">Center</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Effects -->
+      <div class="grp">
+        <div class="grp-hdr">Effects</div>
+        <div class="grp-body">
+          <div class="tog-row">
+            <span class="tog-label">Phosphor glow</span>
+            <label class="tog"><input type="checkbox" id="glow" checked><span class="tog-sl"></span></label>
+          </div>
+          <div class="tog-row">
+            <span class="tog-label">Ghost segments</span>
+            <label class="tog"><input type="checkbox" id="ghost" checked><span class="tog-sl"></span></label>
+          </div>
+          <div class="row">
+            <span class="row-label">Brightness</span>
+            <input type="range" id="bright" min="40" max="100" value="100" step="1">
+            <span class="row-val" id="brightV">100%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Animation -->
+      <div class="grp">
+        <div class="grp-hdr">Animation</div>
+        <div class="grp-body">
+          <div class="apills">
+            <button class="apill on" data-an="none">Static</button>
+            <button class="apill" data-an="blink">Blink</button>
+            <button class="apill" data-an="scroll">Scroll</button>
+          </div>
+          <div class="row" id="speedRow" style="display:none">
+            <span class="row-label">Speed</span>
+            <input type="range" id="speed" min="80" max="2000" value="800" step="40">
+            <span class="row-val" id="speedV">0.8s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Export -->
+      <div class="grp">
+        <div class="grp-hdr">Export</div>
+        <div class="grp-body">
+          <button class="xbtn" id="dlSvg"><span class="xi">↓</span>Download SVG</button>
+          <button class="xbtn" id="cpSvg"><span class="xi" id="cpIcon">⎘</span>Copy SVG code</button>
+          <button class="xbtn" id="dlPng"><span class="xi">↓</span>Download PNG</button>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+</div>
+
+<script>
+/* ── Segment map ─────────────────────────────────────────────────────
+   Bit layout: 0=a(top) 1=b(top-right) 2=c(bot-right) 3=d(bot)
+               4=e(bot-left) 5=f(top-left) 6=g(mid) 7=dp
+*/
+const SM = {
+  '0':0x3F,'1':0x06,'2':0x5B,'3':0x4F,'4':0x66,
+  '5':0x6D,'6':0x7D,'7':0x07,'8':0x7F,'9':0x6F,
+  'A':0x77,'B':0x7C,'C':0x39,'D':0x5E,'E':0x79,
+  'F':0x71,'G':0x3D,'H':0x76,'I':0x30,'J':0x1E,
+  'K':0x76,'L':0x38,'M':0x37,'N':0x54,'O':0x3F,
+  'P':0x73,'Q':0x67,'R':0x50,'S':0x6D,'T':0x78,
+  'U':0x3E,'V':0x3E,'W':0x2A,'X':0x76,'Y':0x6E,
+  'Z':0x5B,' ':0x00,'-':0x40,'_':0x08,'.':0x80,
+};
+
+/* ── Geometry ─────────────────────────────────────────────────────── */
+const T=9, G=4;     // thickness, corner gap
+const DW=68;         // digit slot width (includes dp space)
+const DH=100;        // digit slot height
+const PX=10, PY=10; // screen padding
+
+// Horizontal segment: x0→x1 at y0
+function hp(x0,x1,y0){
+  const y1=y0+T, my=y0+T/2;
+  return `${x0+G},${y0} ${x1-G},${y0} ${x1},${my} ${x1-G},${y1} ${x0+G},${y1} ${x0},${my}`;
+}
+// Vertical segment: x0, y0→y1
+function vp(x0,y0,y1){
+  const x1=x0+T, mx=x0+T/2;
+  return `${x0},${y0+G} ${mx},${y0} ${x1},${y0+G} ${x1},${y1-G} ${mx},${y1} ${x0},${y1-G}`;
+}
+
+// [bit, points] for each of the 7 segments
+const SEGS=[
+  [0, hp(11,49, 3)],   // a top
+  [1, vp(49,11,44)],   // b top-right
+  [2, vp(49,57,90)],   // c bot-right
+  [3, hp(11,49,90)],   // d bottom
+  [4, vp( 2,57,90)],   // e bot-left
+  [5, vp( 2,11,44)],   // f top-left
+  [6, hp(11,49,47)],   // g middle
+];
+
+/* ── State ────────────────────────────────────────────────────────── */
+const S = {
+  text:'HELLO WORLD', digits:12, theme:'green',
+  scale:1.4, glow:true, ghost:true, bright:100,
+  align:'right', anim:'none', speed:800,
+};
+
+let _scroll=null;
+
+/* ── SVG builder ──────────────────────────────────────────────────── */
+function digitSVG(ch, dx){
+  if(ch===':'){
+    return `<g transform="translate(${dx},0)">
+      <circle class="seg-on dp" cx="30" cy="28" r="5" filter="url(#fg)"/>
+      <circle class="seg-on dp" cx="30" cy="68" r="5" filter="url(#fg)"/>
+    </g>`;
+  }
+  const code = SM[ch.toUpperCase()] ?? 0;
+  let g = `<g transform="translate(${dx},0)">`;
+  for(const [bit,pts] of SEGS){
+    const on = !!(code & (1<<bit));
+    if(on)       g+=`<polygon class="seg-on" points="${pts}" filter="url(#fg)"/>`;
+    else if(S.ghost) g+=`<polygon class="seg-off" points="${pts}"/>`;
+  }
+  const dpOn = !!(code & 0x80);
+  if(dpOn)        g+=`<circle class="seg-on dp" cx="62" cy="94" r="4" filter="url(#fg)"/>`;
+  else if(S.ghost) g+=`<circle class="seg-off dp" cx="62" cy="94" r="4"/>`;
+  return g+'</g>';
+}
+
+function filterSVG(){
+  if(!S.glow) return '<filter id="fg"><feIdentity/></filter>';
+  return `<filter id="fg" x="-60%" y="-60%" width="220%" height="220%">
+    <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>`;
+}
+
+function getChars(overrideText){
+  let text = overrideText ?? S.text;
+  const n = S.digits;
+  if(text.length < n){
+    const pad = ' '.repeat(n - text.length);
+    if(S.align==='right')  text = pad + text;
+    else if(S.align==='center'){
+      const l=Math.floor((n-text.length)/2);
+      text = ' '.repeat(l)+text+' '.repeat(n-text.length-l);
+    } else text += pad;
+  } else if(text.length > n){
+    text = S.align==='right' ? text.slice(-n) : text.slice(0,n);
+  }
+  return text.split('');
+}
+
+function buildSVG(chars){
+  const W = S.digits*DW + PX*2;
+  const H = DH + PY*2;
+  const svg = document.getElementById('lcd');
+  svg.setAttribute('width',  W*S.scale);
+  svg.setAttribute('height', H*S.scale);
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+
+  let digits='';
+  for(let i=0;i<S.digits;i++){
+    digits += digitSVG(chars[i]??'', PX + i*DW);
+  }
+  svg.innerHTML=`<defs>${filterSVG()}</defs><g transform="translate(0,${PY})">${digits}</g>`;
+  svg.style.filter=`brightness(${S.bright/100})`;
+}
+
+function render(overrideText){
+  buildSVG(getChars(overrideText));
+}
+
+/* ── Animation ────────────────────────────────────────────────────── */
+function stopAnim(){
+  if(_scroll){ clearInterval(_scroll); _scroll=null; }
+  document.getElementById('lcd').classList.remove('blinking');
+  document.getElementById('lcd').style.removeProperty('--blink-dur');
+}
+
+function startAnim(){
+  stopAnim();
+  const svg=document.getElementById('lcd');
+  if(S.anim==='blink'){
+    svg.style.setProperty('--blink-dur', S.speed+'ms');
+    svg.classList.add('blinking');
+  } else if(S.anim==='scroll'){
+    const full = S.text;
+    const pad = ' '.repeat(S.digits);
+    const loop = pad + full + pad;
+    let i=0;
+    _scroll=setInterval(()=>{
+      const slice=(loop+loop).slice(i, i+S.digits);
+      render(slice);
+      i=(i+1)%(full.length+S.digits);
+    }, S.speed/5);
+  }
+}
+
+function update(){
+  stopAnim();
+  render();
+  updateCount();
+  if(S.anim!=='none') startAnim();
+}
+
+function updateCount(){
+  const n=Math.min(S.text.length, S.digits);
+  document.getElementById('ccount').textContent=`${S.text.length}/${S.digits}`;
+}
+
+/* ── Controls wiring ──────────────────────────────────────────────── */
+document.getElementById('txt').addEventListener('input',e=>{
+  S.text=e.target.value; update();
+});
+
+document.querySelectorAll('[data-t]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('[data-t]').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    S.theme=b.dataset.t;
+    const dev=document.getElementById('device');
+    dev.className='device t-'+S.theme;
+    update();
+  });
+});
+
+document.getElementById('digits').addEventListener('input',e=>{
+  S.digits=+e.target.value;
+  document.getElementById('digitsV').textContent=S.digits;
+  update();
+});
+
+document.getElementById('scale').addEventListener('input',e=>{
+  S.scale=+e.target.value;
+  document.getElementById('scaleV').textContent=S.scale.toFixed(1)+'×';
+  update();
+});
+
+document.querySelectorAll('[data-al]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('[data-al]').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    S.align=b.dataset.al; update();
+  });
+});
+
+document.getElementById('glow').addEventListener('change',e=>{S.glow=e.target.checked;update()});
+document.getElementById('ghost').addEventListener('change',e=>{S.ghost=e.target.checked;update()});
+
+document.getElementById('bright').addEventListener('input',e=>{
+  S.bright=+e.target.value;
+  document.getElementById('brightV').textContent=S.bright+'%';
+  document.getElementById('lcd').style.filter=`brightness(${S.bright/100})`;
+});
+
+document.querySelectorAll('[data-an]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('[data-an]').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    S.anim=b.dataset.an;
+    document.getElementById('speedRow').style.display=S.anim!=='none'?'flex':'none';
+    update();
+  });
+});
+
+document.getElementById('speed').addEventListener('input',e=>{
+  S.speed=+e.target.value;
+  const v=S.speed>=1000?(S.speed/1000).toFixed(1)+'s':(S.speed+'ms');
+  document.getElementById('speedV').textContent=v;
+  if(S.anim!=='none') startAnim();
+});
+
+/* ── Export ───────────────────────────────────────────────────────── */
+function svgString(){
+  const svg=document.getElementById('lcd');
+  const dev=document.getElementById('device');
+  const cs=getComputedStyle(dev);
+  const on=cs.getPropertyValue('--lcd-on').trim();
+  const off=cs.getPropertyValue('--lcd-off').trim();
+  const ns='xmlns="http://www.w3.org/2000/svg"';
+  let s=new XMLSerializer().serializeToString(svg);
+  // Ensure xml namespace
+  if(!s.includes(ns)) s=s.replace('<svg','<svg '+ns);
+  // Inline colour classes
+  s=s.replace(/class="seg-on[^"]*"/g,`fill="${on}"`);
+  s=s.replace(/class="seg-off[^"]*"/g,`fill="${off}"`);
+  return s;
+}
+
+document.getElementById('dlSvg').addEventListener('click',()=>{
+  const b=new Blob([svgString()],{type:'image/svg+xml'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(b); a.download='lcd-display.svg'; a.click();
+});
+
+document.getElementById('cpSvg').addEventListener('click',()=>{
+  navigator.clipboard.writeText(svgString()).catch(()=>{});
+  const ic=document.getElementById('cpIcon');
+  ic.textContent='✓';
+  setTimeout(()=>ic.textContent='⎘',2000);
+});
+
+document.getElementById('dlPng').addEventListener('click',()=>{
+  const svg=document.getElementById('lcd');
+  const dev=document.getElementById('device');
+  const cs=getComputedStyle(dev);
+  const bg=cs.getPropertyValue('--lcd-bg').trim();
+  const W=+svg.getAttribute('width'), H=+svg.getAttribute('height');
+  const s=svgString();
+  const blob=new Blob([s],{type:'image/svg+xml;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const img=new Image();
+  img.onload=()=>{
+    const cv=document.createElement('canvas');
+    const r=2; cv.width=W*r; cv.height=H*r;
+    const ctx=cv.getContext('2d');
+    ctx.scale(r,r);
+    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+    ctx.drawImage(img,0,0,W,H);
+    URL.revokeObjectURL(url);
+    const a=document.createElement('a');
+    a.download='lcd-display.png'; a.href=cv.toDataURL('image/png'); a.click();
+  };
+  img.src=url;
+});
+
+/* ── Page theme toggle ────────────────────────────────────────────── */
+let pageTheme='dark';
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  pageTheme=pageTheme==='dark'?'light':'dark';
+  document.documentElement.dataset.theme=pageTheme;
+  document.getElementById('themeBtn').textContent=pageTheme==='dark'?'☀ Light':'☾ Dark';
+});
+
+/* ── Init ─────────────────────────────────────────────────────────── */
+render();
+updateCount();
+</script>
