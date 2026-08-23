@@ -86,6 +86,12 @@ export function generateHeader(state) {
     '',
     `#define LCD_COLS ${cfg.cols}`,
     `#define LCD_ROWS ${cfg.rows}`,
+    '',
+    '/* ---- HAL forward declarations — implement these in your sketch ---- */',
+    'extern void lcd_gotoxy(uint8_t col, uint8_t row);',
+    'extern void lcd_putchar(char c);',
+    'extern void lcd_print(const char *s);',
+    'extern void lcd_createChar(uint8_t slot, const uint8_t *data);',
     ''
   );
 
