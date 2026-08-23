@@ -37,25 +37,29 @@ export default function ArduinoGuide({ open, onClose }) {
   if (!open) return null
 
   const screen = state.screens[state.activeScreen]
-  const nameLo = screen.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
-  const nameUp = screen.name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase()
+  const namePascal = screen.name.replace(/[^a-zA-Z0-9]/g, '_')
   const cfg = { '16x2': [16, 2], '20x4': [20, 4], '128x64': [21, 8] }[state.dt] || [16, 2]
   const usedCgram = state.cgram.map((g, i) => (g ? i : -1)).filter(i => i >= 0)
   const phs = screen.placeholders
 
+  const halBinding = `void lcd_gotoxy(uint8_t c, uint8_t r) { lcd.setCursor(c, r); }
+void lcd_putchar(char c)              { lcd.write(c); }
+void lcd_print(const char *s)         { lcd.print(s); }
+void lcd_createChar(uint8_t s, const uint8_t *d) { lcd.createChar(s, d); }`
+
   const setupExample = `#include <LiquidCrystal.h>
 #include "lcd_screens.h"
 
-// Adjust pins to your wiring: RS, E, D4, D5, D6, D7
+// Adjust pins to match your wiring: RS, E, D4, D5, D6, D7
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+
+// HAL binding — forward HAL calls to LiquidCrystal
+${halBinding}
 
 void setup() {
   lcd.begin(${cfg[0]}, ${cfg[1]});
-${usedCgram.length ? `  ${nameLo}_load_cgram();  // load custom chars\n` : ''}\
-  // Print static rows
-  lcd.setCursor(0, 0);
-  lcd.print(${nameLo}_r0);
-${cfg[1] > 1 ? `  lcd.setCursor(0, 1);\n  lcd.print(${nameLo}_r1);\n` : ''}\
+${usedCgram.length ? `  LCD_LoadCGRAM();          // load custom CGRAM characters\n` : ''}\
+  LCD_Show_${namePascal}_Static();  // print all static rows
 }
 
 void loop() {
@@ -68,39 +72,45 @@ void loop() {
 #include "lcd_screens.h"
 
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+${halBinding}
 
 void setup() {
   lcd.begin(${cfg[0]}, ${cfg[1]});
-${usedCgram.length ? `  ${nameLo}_load_cgram();\n` : ''}\
-  // Print static content once
-  lcd.setCursor(0, 0);
-  lcd.print(${nameLo}_r0);
-${cfg[1] > 1 ? `  lcd.setCursor(0, 1);\n  lcd.print(${nameLo}_r1);\n` : ''}}
+${usedCgram.length ? `  LCD_LoadCGRAM();\n` : ''}\
+  LCD_Show_${namePascal}_Static();   // draw static parts once
+}
 
-void updateDisplay(${phs.map(p => `float ${p.name}`).join(', ')}) {
-${phs.map(p => `  // Update field: ${p.name} (col ${p.col}, row ${p.row}, width ${p.width})
-  lcd.setCursor(${nameUp}_F_${p.name.toUpperCase()}.col,
-               ${nameUp}_F_${p.name.toUpperCase()}.row);
-  lcd.print(${p.name}, 1);  // 1 decimal place`).join('\n')}
+void updateDisplay() {
+${phs.map(p => {
+  const fn = p.name.replace(/[^a-zA-Z0-9]/g, '_')
+  return `  // Field '${p.name}' is pinned at col=${p.col}, row=${p.row}, width=${p.width}
+  char buf_${fn}[${p.width + 1}];
+  snprintf(buf_${fn}, sizeof(buf_${fn}), "%s", /* your value here */ "");
+  LCD_Update_${namePascal}_${fn}(buf_${fn});`
+}).join('\n\n')}
 }
 
 void loop() {
-  // Example: call with real sensor readings
-  // updateDisplay(${phs.map(() => '0.0').join(', ')});
+  updateDisplay();
   delay(1000);
 }`
 
-  const progmemExample = `// Reading PROGMEM strings on AVR (optional, saves RAM):
-#include <avr/pgmspace.h>
-#include "lcd_screens.h"
+  const progmemExample = `// lcd_screens.h stores all row strings in PROGMEM (AVR flash).
+// LCD_Show_${namePascal}_Static() reads them with pgm_read_byte()
+// internally — you never need to call pgm_read_byte yourself.
 
-char buf[${cfg[0] + 1}];
-strcpy_P(buf, ${nameLo}_r0);
-lcd.setCursor(0, 0);
-lcd.print(buf);
+// On AVR (Uno / Nano / Mega):
+//   PROGMEM puts strings in flash, saving SRAM.
+//   pgm_read_byte() is used to fetch each byte.
 
-// On non-AVR (ESP32, RP2040, etc.) PROGMEM is a no-op,
-// so lcd.print(${nameLo}_r0) works directly.`
+// On non-AVR (ESP32, RP2040, STM32 ...):
+//   PROGMEM is a no-op macro — the strings live in RAM as usual.
+//   pgm_read_byte() dereferences the pointer directly.
+//   Everything still compiles and works without changes.
+
+// Custom chars (CGRAM) are also stored in PROGMEM arrays:
+//   static const uint8_t cgram_0[8] PROGMEM = { 0x00, ... };
+// LCD_LoadCGRAM() copies them to the LCD with lcd_createChar().`
 
   const fullHeader = generateHeader(state).join('\n')
 
@@ -129,7 +139,9 @@ lcd.print(buf);
                 1. Place <code>lcd_screens.h</code> in the same folder as your <code>.ino</code> sketch.
               </p>
               <p className="guide-text">
-                2. Use <code>LiquidCrystal</code> (HD44780) or <code>LiquidCrystal_I2C</code> for I²C modules.
+                2. Add the four HAL functions shown below — they forward calls from the generated
+                header to your LCD library. <code>LiquidCrystal</code>, <code>LiquidCrystal_I2C</code>,
+                or any other library that exposes the same API all work.
               </p>
               <CodeBlock code={setupExample} />
             </div>
@@ -137,8 +149,9 @@ lcd.print(buf);
           {tab === 1 && (
             <div className="guide-section">
               <p className="guide-text">
-                Each placeholder becomes a struct with <code>col</code>, <code>row</code>, <code>width</code>.
-                Call <code>lcd.setCursor()</code> with those values before printing the live value.
+                Call <code>LCD_Show_{namePascal}_Static()</code> once in <code>setup()</code> to
+                draw all static text. Then call the per-field update helpers whenever the value changes.
+                Each helper is pinned to fixed coordinates — editing static text never shifts them.
               </p>
               <CodeBlock code={dynamicExample} />
             </div>
@@ -146,8 +159,9 @@ lcd.print(buf);
           {tab === 2 && (
             <div className="guide-section">
               <p className="guide-text">
-                On AVR (Uno, Nano, Mega) strings in <code>PROGMEM</code> live in flash memory.
-                On modern boards (ESP32, RP2040) the macro is a no-op — <code>lcd.print()</code> works directly.
+                Row strings and CGRAM bitmaps are stored in <code>PROGMEM</code> (AVR flash).
+                The generated helpers handle <code>pgm_read_byte()</code> for you — no extra
+                code needed on your side.
               </p>
               <CodeBlock code={progmemExample} />
             </div>
