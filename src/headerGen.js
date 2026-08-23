@@ -186,6 +186,10 @@ export function generateHeader(state) {
       push(`    for (uint8_t i = 0; i < 8; i++) _buf[i] = pgm_read_byte(&cgram_${i}[i]);`);
       push(`    lcd_createChar(${i}, _buf);`);
     });
+    // HD44780: createChar() leaves the controller in CGRAM-write mode.
+    // Calling lcd_gotoxy() switches it back to DDRAM mode so subsequent
+    // write() calls go to the display instead of CGRAM.
+    push('    lcd_gotoxy(0, 0);');
     push('}');
     push('');
   }
