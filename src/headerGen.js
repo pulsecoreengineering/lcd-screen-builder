@@ -240,16 +240,28 @@ export function generateHeader(state) {
     push('}');
     push('');
 
-    // Per-field LCD_Update_*() helpers
+    // Per-field LCD_Update_*() helpers — overloaded for const char*, int, float
     s.placeholders.forEach(p => {
-      const fn  = p.name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+      const fn   = p.name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
       const fnLo = p.name.replace(/[^a-zA-Z0-9]/g, '_');
-      push(`/* Write a value at the fixed coordinates of '${p.name}' (col=${p.col}, row=${p.row}, width=${p.width}). */`);
+      const W    = `${nameUp}_${fn}_WIDTH`;
+      push(`/* Update '${p.name}' at col=${p.col}, row=${p.row}, width=${p.width}. Accepts const char*, int, or float. */`);
+      // string overload (base)
       push(`static inline void LCD_Update_${namePascal}_${fnLo}(const char *value) {`);
       push(`    lcd_gotoxy(${nameUp}_${fn}_COL, ${nameUp}_${fn}_ROW);`);
       push(`    uint8_t i = 0;`);
-      push(`    while (i < ${nameUp}_${fn}_WIDTH && value[i]) { lcd_putchar(value[i]); i++; }`);
-      push(`    while (i < ${nameUp}_${fn}_WIDTH) { lcd_putchar(' '); i++; }`);
+      push(`    while (i < ${W} && value[i]) { lcd_putchar(value[i]); i++; }`);
+      push(`    while (i < ${W}) { lcd_putchar(' '); i++; }`);
+      push('}');
+      // int overload
+      push(`static inline void LCD_Update_${namePascal}_${fnLo}(int value) {`);
+      push(`    char _b[${p.width + 1}]; snprintf(_b, sizeof(_b), "%d", value);`);
+      push(`    LCD_Update_${namePascal}_${fnLo}(_b);`);
+      push('}');
+      // float overload
+      push(`static inline void LCD_Update_${namePascal}_${fnLo}(float value, uint8_t decimals = 1) {`);
+      push(`    char _b[${p.width + 1}]; dtostrf(value, ${p.width}, decimals, _b);`);
+      push(`    LCD_Update_${namePascal}_${fnLo}(_b);`);
       push('}');
       push('');
     });
