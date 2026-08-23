@@ -18,8 +18,14 @@ export default function FieldsPanel({ onEdit }) {
           <div key={i} className="field-item">
             <div className="field-dot" />
             <div className="field-info">
-              <div className="field-name">{p.name}</div>
-              <div className="field-meta">col {p.col} · row {p.row} · w {p.width}</div>
+              <div className="field-name">
+                {p.name}
+                {p.editable && <span className="field-sp-badge">SP</span>}
+              </div>
+              <div className="field-meta">
+                col {p.col} · row {p.row} · w {p.width}
+                {p.editable && ` · ${p.spMin ?? 0}–${p.spMax ?? 100} step ${p.spStep ?? 1}`}
+              </div>
             </div>
             <button
               className="field-act-btn"

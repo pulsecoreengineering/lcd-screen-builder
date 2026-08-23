@@ -1,16 +1,21 @@
 import { useState, useEffect, useRef } from 'react'
 import { useStore } from '../store'
 
-// editTarget: null = insert mode, { index, name, col, row, width } = edit mode
+// editTarget: null = insert mode, { index, name, col, row, width, editable?, spMin?, spMax?, spStep?, spDefault? } = edit mode
 export default function PlaceholderDialog({ open, onClose, editTarget }) {
   const { state, dispatch } = useStore()
   const { cursorCol, cursorRow } = state
   const isEdit = editTarget != null
 
-  const [name, setName] = useState('')
-  const [col, setCol] = useState(0)
-  const [row, setRow] = useState(0)
-  const [width, setWidth] = useState(4)
+  const [name, setName]         = useState('')
+  const [col, setCol]           = useState(0)
+  const [row, setRow]           = useState(0)
+  const [width, setWidth]       = useState(4)
+  const [editable, setEditable] = useState(false)
+  const [spMin, setSpMin]       = useState(0)
+  const [spMax, setSpMax]       = useState(100)
+  const [spStep, setSpStep]     = useState(1)
+  const [spDefault, setSpDefault] = useState(0)
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -20,11 +25,21 @@ export default function PlaceholderDialog({ open, onClose, editTarget }) {
       setCol(editTarget.col)
       setRow(editTarget.row)
       setWidth(editTarget.width)
+      setEditable(!!editTarget.editable)
+      setSpMin(editTarget.spMin ?? 0)
+      setSpMax(editTarget.spMax ?? 100)
+      setSpStep(editTarget.spStep ?? 1)
+      setSpDefault(editTarget.spDefault ?? 0)
     } else {
       setName('')
       setCol(cursorCol)
       setRow(cursorRow)
       setWidth(4)
+      setEditable(false)
+      setSpMin(0)
+      setSpMax(100)
+      setSpStep(1)
+      setSpDefault(0)
     }
     setTimeout(() => inputRef.current?.focus(), 50)
   }, [open, isEdit]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -32,13 +47,20 @@ export default function PlaceholderDialog({ open, onClose, editTarget }) {
   function confirm() {
     const clean = name.trim().replace(/[^a-zA-Z0-9_]/g, '_')
     if (!clean) return
-    const w = Math.max(1, Math.min(20, parseInt(width) || 4))
-    const c = Math.max(0, parseInt(col) || 0)
-    const r = Math.max(0, parseInt(row) || 0)
+    const w  = Math.max(1, Math.min(20, parseInt(width)    || 4))
+    const c  = Math.max(0, parseInt(col)     || 0)
+    const r  = Math.max(0, parseInt(row)     || 0)
+    const changes = { name: clean, col: c, row: r, width: w, editable }
+    if (editable) {
+      changes.spMin     = Number(spMin)
+      changes.spMax     = Number(spMax)
+      changes.spStep    = Math.max(1, Number(spStep) || 1)
+      changes.spDefault = Number(spDefault)
+    }
     if (isEdit) {
-      dispatch({ type: 'EDIT_PLACEHOLDER', index: editTarget.index, changes: { name: clean, col: c, row: r, width: w } })
+      dispatch({ type: 'EDIT_PLACEHOLDER', index: editTarget.index, changes })
     } else {
-      dispatch({ type: 'ADD_PLACEHOLDER', name: clean, col: c, row: r, width: w })
+      dispatch({ type: 'ADD_PLACEHOLDER', name: clean, col: c, row: r, width: w, ...changes })
     }
     onClose()
   }
@@ -69,7 +91,7 @@ export default function PlaceholderDialog({ open, onClose, editTarget }) {
           onChange={e => setName(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 12 }}>
           <div>
             <div className="name-dialog-label">Col:</div>
             <input className="name-dialog-width" type="number" value={col} min={0} max={31}
@@ -86,6 +108,44 @@ export default function PlaceholderDialog({ open, onClose, editTarget }) {
               onChange={e => setWidth(e.target.value)} />
           </div>
         </div>
+
+        {/* Setpoint toggle */}
+        <label className="sp-toggle">
+          <input
+            type="checkbox"
+            checked={editable}
+            onChange={e => setEditable(e.target.checked)}
+          />
+          <span className="sp-toggle-label">Editable setpoint (adjustable via nav buttons)</span>
+        </label>
+
+        {editable && (
+          <div className="sp-config">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              <div>
+                <div className="name-dialog-label">Min:</div>
+                <input className="name-dialog-width" type="number" value={spMin}
+                  onChange={e => setSpMin(e.target.value)} />
+              </div>
+              <div>
+                <div className="name-dialog-label">Max:</div>
+                <input className="name-dialog-width" type="number" value={spMax}
+                  onChange={e => setSpMax(e.target.value)} />
+              </div>
+              <div>
+                <div className="name-dialog-label">Step:</div>
+                <input className="name-dialog-width" type="number" value={spStep} min={1}
+                  onChange={e => setSpStep(e.target.value)} />
+              </div>
+              <div>
+                <div className="name-dialog-label">Default:</div>
+                <input className="name-dialog-width" type="number" value={spDefault}
+                  onChange={e => setSpDefault(e.target.value)} />
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="name-dialog-row">
           <button className="nd-btn" onClick={onClose}>Cancel</button>
           <button className="nd-btn confirm" onClick={confirm}>{isEdit ? 'Save' : 'Insert'}</button>

@@ -271,6 +271,70 @@ export function generateHeader(state) {
     });
   });
 
+  // ── Setpoints ─────────────────────────────────────────────────────────
+  // Collect editable placeholders across all screens
+  const editableFields = [];
+  screens.forEach((s, si) => {
+    const nameUp     = s.name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+    const namePascal = s.name.replace(/[^a-zA-Z0-9]/g, '_');
+    s.placeholders.filter(p => p.editable).forEach((p, localEi) => {
+      editableFields.push({ s, si, p, localEi, nameUp, namePascal });
+    });
+  });
+
+  if (editableFields.length) {
+    push('/* ---- Setpoint variables', ' *  Each editable field has a backing int16_t variable and min/max/step bounds.', ' *  Read sp_* in your sketch to get the current value.', ' * ---- */');
+    push('');
+    editableFields.forEach(({ s, si, p, localEi, nameUp, namePascal }) => {
+      const fn    = p.name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+      const fnLo  = p.name.replace(/[^a-zA-Z0-9]/g, '_');
+      const vname = `sp_${namePascal}_${fnLo}`;
+      push(`static int16_t ${vname} = ${p.spDefault ?? 0};`);
+      push(`#define ${nameUp}_${fn}_SP_MIN   ${p.spMin  ?? 0}`);
+      push(`#define ${nameUp}_${fn}_SP_MAX   ${p.spMax  ?? 100}`);
+      push(`#define ${nameUp}_${fn}_SP_STEP  ${p.spStep ?? 1}`);
+      push('');
+    });
+
+    push('/* ---- Edit-mode state ---- */');
+    push('static uint8_t _edit_screen = 0xFF;');
+    push('static uint8_t _edit_field  = 0xFF;');
+    push('');
+    push('static inline void LCD_EditExit(void) { _edit_screen = _edit_field = 0xFF; }');
+    push('');
+
+    // Per-field LCD_EditEnter_*()
+    editableFields.forEach(({ s, si, p, localEi, nameUp, namePascal }) => {
+      const fn   = p.name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+      const fnLo = p.name.replace(/[^a-zA-Z0-9]/g, '_');
+      const vname = `sp_${namePascal}_${fnLo}`;
+      push(`static inline void LCD_EditEnter_${namePascal}_${fnLo}(void) {`);
+      push(`    _edit_screen = ${si}; _edit_field = ${localEi};`);
+      push(`    LCD_Update_${namePascal}_${fnLo}(${vname});`);
+      push(`    lcd_gotoxy(${nameUp}_${fn}_COL, ${nameUp}_${fn}_ROW);`);
+      push('}');
+      push('');
+    });
+
+    // _nav_edit_apply(delta): updates the active setpoint variable + display
+    push('static inline void _nav_edit_apply(int8_t delta) {');
+    editableFields.forEach(({ s, si, p, localEi, nameUp, namePascal }) => {
+      const fn   = p.name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+      const fnLo = p.name.replace(/[^a-zA-Z0-9]/g, '_');
+      const vname = `sp_${namePascal}_${fnLo}`;
+      push(`    if (_edit_screen == ${si} && _edit_field == ${localEi}) {`);
+      push(`        ${vname} += (int16_t)delta * ${nameUp}_${fn}_SP_STEP;`);
+      push(`        if (${vname} < ${nameUp}_${fn}_SP_MIN) ${vname} = ${nameUp}_${fn}_SP_MIN;`);
+      push(`        if (${vname} > ${nameUp}_${fn}_SP_MAX) ${vname} = ${nameUp}_${fn}_SP_MAX;`);
+      push(`        LCD_Update_${namePascal}_${fnLo}(${vname});`);
+      push(`        lcd_gotoxy(${nameUp}_${fn}_COL, ${nameUp}_${fn}_ROW);`);
+      push(`        return;`);
+      push(`    }`);
+    });
+    push('}');
+    push('');
+  }
+
   // ── Navigation ────────────────────────────────────────────────────────
   const { inputMethod = 'none', navPins = {}, transitions = [] } = state;
   if (inputMethod !== 'none' && screens.length > 1) {
@@ -352,6 +416,20 @@ export function generateHeader(state) {
       }
       push('    if (ev < 0) return;');
       push('    _last = millis();');
+      // Edit mode: up/next=+1, down=-1, select/back=exit
+      if (editableFields.length) {
+        push('    if (_edit_field != 0xFF) {');
+        if (inputMethod === '4btn') {
+          push('        if (ev == 0) { _nav_edit_apply(+1); return; }');
+          push('        if (ev == 1) { _nav_edit_apply(-1); return; }');
+          push('        if (ev == 2 || ev == 3) { LCD_EditExit(); return; }');
+        } else {
+          push('        if (ev == 0) { _nav_edit_apply(+1); return; }');
+          push('        if (ev == 1) { LCD_EditExit(); return; }');
+        }
+        push('        return;');
+        push('    }');
+      }
       if (transitions.length) {
         push('    for (uint8_t i = 0; i < _NAV_TABLE_SIZE; i++) {');
         push('        if (_nav_table[i][0] == _nav_cur && _nav_table[i][1] == (uint8_t)ev) {');
@@ -402,6 +480,15 @@ export function generateHeader(state) {
       push('        }');
       push('    }');
       push('    if (ev < 0) return;');
+      // Edit mode: CW=+1, CCW=-1, press=exit
+      if (editableFields.length) {
+        push('    if (_edit_field != 0xFF) {');
+        push('        if (ev == 0) { _nav_edit_apply(+1); return; }');
+        push('        if (ev == 1) { _nav_edit_apply(-1); return; }');
+        push('        if (ev == 2) { LCD_EditExit(); return; }');
+        push('        return;');
+        push('    }');
+      }
       if (transitions.length) {
         push('    for (uint8_t i = 0; i < _NAV_TABLE_SIZE; i++) {');
         push('        if (_nav_table[i][0] == _nav_cur && _nav_table[i][1] == (uint8_t)ev) {');

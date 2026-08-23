@@ -227,3 +227,10 @@ canvas.lcd-canvas:focus{box-shadow:0 0 0 2px rgba(74,222,128,0.2)}
 .nav-add-btn{padding:3px 9px;border-radius:4px;font-size:13px;font-weight:700;cursor:pointer;background:#166534;border:none;color:#bbf7d0;line-height:1;flex-shrink:0}
 .nav-add-btn:hover{background:#15803d}
 .nav-hint{font-size:11px;color:#3a5a3a;font-style:italic;margin-top:4px}
+
+/* ── Setpoint fields ── */
+.sp-toggle{display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer}
+.sp-toggle input[type="checkbox"]{accent-color:#4ade80;width:13px;height:13px;cursor:pointer;flex-shrink:0}
+.sp-toggle-label{font-size:11px;color:#7aaa7a}
+.sp-config{background:#0a150a;border:1px solid #1a2a1a;border-radius:6px;padding:10px;margin-bottom:10px}
+.field-sp-badge{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:.05em;background:#166534;color:#4ade80;vertical-align:middle}
