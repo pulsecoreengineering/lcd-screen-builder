@@ -1,9 +1,10 @@
 import { createContext, useContext, useReducer } from 'react';
 import { DISP } from './constants';
 
-function makeScreen(name, cols, rows) {
+function makeScreen(name, cols, rows, type = 'main') {
   return {
     name,
+    type,
     cells: Array.from({ length: rows }, () => Array(cols).fill(' ')),
     placeholders: [],
   };
@@ -35,7 +36,12 @@ function buildInitialState() {
     targetLib: 'liquidcrystal_i2c',
     i2cAddr: '0x27',
     inputMethod: 'none',
-    navPins: { up: 2, down: 3, select: 4, back: 5, clk: 2, dt: 3, sw: 4 },
+    navPins: {
+        up: 2, down: 3, select: 4, back: 5,
+        clk: 2, dt: 3, sw: 4,
+        kpdR0: 2, kpdR1: 3, kpdR2: 4, kpdR3: 5,
+        kpdC0: 6, kpdC1: 7, kpdC2: 8, kpdC3: 9,
+      },
     transitions: [],
   };
 }
@@ -70,7 +76,7 @@ function reducer(state, action) {
       const cfg = DISP[state.dt];
       return {
         ...state,
-        screens: [...state.screens, makeScreen(action.name, cfg.cols, cfg.rows)],
+        screens: [...state.screens, makeScreen(action.name, cfg.cols, cfg.rows, action.screenType || 'main')],
         activeScreen: state.screens.length,
         cursorCol: 0,
         cursorRow: 0,
@@ -94,6 +100,14 @@ function reducer(state, action) {
         ...state,
         screens: state.screens.map((s, i) =>
           i === action.index ? { ...s, name: action.name } : s
+        ),
+      };
+
+    case 'SET_SCREEN_TYPE':
+      return {
+        ...state,
+        screens: state.screens.map((s, i) =>
+          i === action.index ? { ...s, type: action.screenType } : s
         ),
       };
 

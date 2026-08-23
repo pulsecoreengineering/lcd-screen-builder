@@ -3,9 +3,11 @@ import { useStore } from '../store'
 
 const INPUT_METHODS = [
   { value: 'none',    label: 'None' },
-  { value: '2btn',   label: '2-Button (Next/Select)' },
-  { value: '4btn',   label: '4-Button (Up/Down/Select/Back)' },
+  { value: '2btn',   label: '2-Button' },
+  { value: '4btn',   label: '4-Button' },
   { value: 'rotary', label: 'Rotary Encoder' },
+  { value: '4x3kpd', label: '4×3 Keypad (12-key)' },
+  { value: '4x4kpd', label: '4×4 Keypad (16-key)' },
 ]
 
 const EVENTS_BY_METHOD = {
@@ -13,6 +15,8 @@ const EVENTS_BY_METHOD = {
   '2btn':  ['next', 'select'],
   '4btn':  ['up', 'down', 'select', 'back'],
   rotary:  ['cw', 'ccw', 'press'],
+  '4x3kpd': ['up', 'down', 'select', 'back'],
+  '4x4kpd': ['up', 'down', 'select', 'back'],
 }
 
 const PIN_FIELDS_BY_METHOD = {
@@ -24,11 +28,103 @@ const PIN_FIELDS_BY_METHOD = {
     { key: 'select', label: 'Select pin' },
     { key: 'back',   label: 'Back pin' },
   ],
-  rotary:  [
+  rotary: [
     { key: 'clk', label: 'CLK pin' },
     { key: 'dt',  label: 'DT pin' },
     { key: 'sw',  label: 'SW pin' },
   ],
+  '4x3kpd': [
+    { key: 'kpdR0', label: 'Row 0' }, { key: 'kpdR1', label: 'Row 1' },
+    { key: 'kpdR2', label: 'Row 2' }, { key: 'kpdR3', label: 'Row 3' },
+    { key: 'kpdC0', label: 'Col 0' }, { key: 'kpdC1', label: 'Col 1' },
+    { key: 'kpdC2', label: 'Col 2' },
+  ],
+  '4x4kpd': [
+    { key: 'kpdR0', label: 'Row 0' }, { key: 'kpdR1', label: 'Row 1' },
+    { key: 'kpdR2', label: 'Row 2' }, { key: 'kpdR3', label: 'Row 3' },
+    { key: 'kpdC0', label: 'Col 0' }, { key: 'kpdC1', label: 'Col 1' },
+    { key: 'kpdC2', label: 'Col 2' }, { key: 'kpdC3', label: 'Col 3' },
+  ],
+}
+
+const KPD_3x4_LAYOUT = [
+  [{ k:'1' },{ k:'2', role:'up' },{ k:'3' }],
+  [{ k:'4' },{ k:'5' },         { k:'6' }],
+  [{ k:'7' },{ k:'8', role:'dn' },{ k:'9' }],
+  [{ k:'*', role:'bk' },{ k:'0' },{ k:'#', role:'ok' }],
+]
+const KPD_4x4_LAYOUT = [
+  [{ k:'1' },{ k:'2' },{ k:'3' },{ k:'A', role:'up' }],
+  [{ k:'4' },{ k:'5' },{ k:'6' },{ k:'B', role:'dn' }],
+  [{ k:'7' },{ k:'8' },{ k:'9' },{ k:'C', role:'ok' }],
+  [{ k:'*' },{ k:'0' },{ k:'#' },{ k:'D', role:'bk' }],
+]
+const ROLE_LABEL = { up:'▲', dn:'▼', ok:'✓', bk:'↩' }
+
+function KeypadDiagram({ layout }) {
+  return (
+    <div className="kpd-diagram">
+      {layout.map((row, ri) => (
+        <div key={ri} className="kpd-row">
+          {row.map((cell, ci) => (
+            <div key={ci} className={`kpd-key${cell.role ? ' kpd-key-role' : ''}`}>
+              {cell.k}
+              {cell.role && <span className="kpd-role">{ROLE_LABEL[cell.role]}</span>}
+            </div>
+          ))}
+        </div>
+      ))}
+      <div className="kpd-hint">In edit: digits to type value · # or D to confirm · * to backspace</div>
+    </div>
+  )
+}
+
+function PinGrid({ pinFields, navPins, dispatch }) {
+  const isKeypad = pinFields.some(f => f.key.startsWith('kpd'))
+  const rowFields = isKeypad ? pinFields.slice(0, 4) : null
+  const colFields = isKeypad ? pinFields.slice(4)   : null
+
+  if (!isKeypad) {
+    return (
+      <div className="nav-pins">
+        {pinFields.map(f => (
+          <div className="nav-row" key={f.key}>
+            <span className="nav-label">{f.label}</span>
+            <input className="nav-pin-input" type="number" min={0} max={53}
+              value={navPins[f.key] ?? 2}
+              onChange={e => dispatch({ type: 'SET_NAV_PIN', pin: f.key, value: Number(e.target.value) })} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="nav-pins">
+      <div className="kpd-pin-group-label">Rows (output)</div>
+      <div className="kpd-pin-row">
+        {rowFields.map(f => (
+          <div className="kpd-pin-cell" key={f.key}>
+            <div className="kpd-pin-label">{f.label}</div>
+            <input className="nav-pin-input" type="number" min={0} max={53}
+              value={navPins[f.key] ?? 2}
+              onChange={e => dispatch({ type: 'SET_NAV_PIN', pin: f.key, value: Number(e.target.value) })} />
+          </div>
+        ))}
+      </div>
+      <div className="kpd-pin-group-label" style={{ marginTop: 6 }}>Columns (input)</div>
+      <div className="kpd-pin-row">
+        {colFields.map(f => (
+          <div className="kpd-pin-cell" key={f.key}>
+            <div className="kpd-pin-label">{f.label}</div>
+            <input className="nav-pin-input" type="number" min={0} max={53}
+              value={navPins[f.key] ?? 6}
+              onChange={e => dispatch({ type: 'SET_NAV_PIN', pin: f.key, value: Number(e.target.value) })} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function AddTransitionRow({ screens, events, onAdd }) {
@@ -64,6 +160,7 @@ export default function NavPanel() {
 
   const events    = EVENTS_BY_METHOD[inputMethod] || []
   const pinFields = PIN_FIELDS_BY_METHOD[inputMethod] || []
+  const isKeypad  = inputMethod === '4x3kpd' || inputMethod === '4x4kpd'
 
   return (
     <div className="panel-section">
@@ -73,11 +170,8 @@ export default function NavPanel() {
 
       <div className="nav-row">
         <span className="nav-label">Input</span>
-        <select
-          className="nav-select"
-          value={inputMethod}
-          onChange={e => dispatch({ type: 'SET_INPUT_METHOD', method: e.target.value })}
-        >
+        <select className="nav-select" value={inputMethod}
+          onChange={e => dispatch({ type: 'SET_INPUT_METHOD', method: e.target.value })}>
           {INPUT_METHODS.map(m => (
             <option key={m.value} value={m.value}>{m.label}</option>
           ))}
@@ -85,26 +179,16 @@ export default function NavPanel() {
       </div>
 
       {pinFields.length > 0 && (
-        <div className="nav-pins">
-          {pinFields.map(f => (
-            <div className="nav-row" key={f.key}>
-              <span className="nav-label">{f.label}</span>
-              <input
-                className="nav-pin-input"
-                type="number"
-                min={0}
-                max={53}
-                value={navPins[f.key] ?? 2}
-                onChange={e => dispatch({ type: 'SET_NAV_PIN', pin: f.key, value: Number(e.target.value) })}
-              />
-            </div>
-          ))}
-        </div>
+        <PinGrid pinFields={pinFields} navPins={navPins} dispatch={dispatch} />
+      )}
+
+      {isKeypad && (
+        <KeypadDiagram layout={inputMethod === '4x3kpd' ? KPD_3x4_LAYOUT : KPD_4x4_LAYOUT} />
       )}
 
       {inputMethod !== 'none' && (
         <>
-          <div className="nav-section-label">Transitions</div>
+          <div className="nav-section-label">Screen Transitions</div>
           {transitions.length > 0 && (
             <div className="nav-table">
               <div className="nav-th-row">
@@ -118,11 +202,9 @@ export default function NavPanel() {
                   <span className="nav-td">{screens[t.from]?.name ?? `#${t.from}`}</span>
                   <span className="nav-td nav-event">{t.event}</span>
                   <span className="nav-td">{screens[t.to]?.name ?? `#${t.to}`}</span>
-                  <button
-                    className="nav-del-btn"
+                  <button className="nav-del-btn"
                     onClick={() => dispatch({ type: 'REMOVE_TRANSITION', index: i })}
-                    title="Remove"
-                  >✕</button>
+                    title="Remove">✕</button>
                 </div>
               ))}
             </div>
@@ -134,7 +216,7 @@ export default function NavPanel() {
       )}
 
       {inputMethod === 'none' && (
-        <div className="nav-hint">Select an input method above to define screen transitions.</div>
+        <div className="nav-hint">Select an input method above to define navigation.</div>
       )}
     </div>
   )
