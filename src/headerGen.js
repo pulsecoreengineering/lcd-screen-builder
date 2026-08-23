@@ -41,11 +41,16 @@ const LIB_LABEL = {
 };
 
 export function generateHeader(state) {
-  const { dt, screens, cgram, targetLib = 'custom', i2cAddr = '0x27' } = state;
+  const {
+    dt, screens, cgram,
+    targetLib = 'custom', i2cAddr = '0x27',
+    inputMethod = 'none', navPins = {}, transitions = [],
+  } = state;
   const cfg = DISP[dt] || DISP['16x2'];
   const lines = [];
   const push = (...args) => lines.push(...args);
 
+  const isKeypad = inputMethod === '4x3kpd' || inputMethod === '4x4kpd';
   const usedCgram = cgram.map((g, i) => (g ? i : -1)).filter(i => i >= 0);
   const lib = targetLib || 'custom';
 
@@ -202,7 +207,8 @@ export function generateHeader(state) {
     const cols = s.cells[0]?.length || cfg.cols;
     const sep = '─'.repeat(Math.max(2, 48 - s.name.length));
 
-    push(`/* ---- Screen: ${s.name} ${sep} */`);
+    const typeTag = s.type === 'settings' ? '[Settings]' : '[Main]';
+    push(`/* ---- Screen: ${s.name} ${typeTag} ${sep} */`);
     push('');
 
     // Field coordinate #defines
@@ -270,6 +276,393 @@ export function generateHeader(state) {
       push('');
     });
   });
+
+  // ── Setpoints ─────────────────────────────────────────────────────────
+  // Collect editable placeholders across all screens
+  const editableFields = [];
+  screens.forEach((s, si) => {
+    const nameUp     = s.name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+    const namePascal = s.name.replace(/[^a-zA-Z0-9]/g, '_');
+    s.placeholders.filter(p => p.editable).forEach((p, localEi) => {
+      editableFields.push({ s, si, p, localEi, nameUp, namePascal });
+    });
+  });
+
+  if (editableFields.length) {
+    push('/* ---- Setpoint variables');
+    push(' *  Read sp_* in your sketch at any time to get the current value.');
+    push(' * ---- */');
+    push('');
+    editableFields.forEach(({ p, nameUp, namePascal }) => {
+      const fn    = p.name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+      const fnLo  = p.name.replace(/[^a-zA-Z0-9]/g, '_');
+      const vname = `sp_${namePascal}_${fnLo}`;
+      push(`static int16_t ${vname} = ${p.spDefault ?? 0};`);
+      push(`#define ${nameUp}_${fn}_SP_MIN   ${p.spMin  ?? 0}`);
+      push(`#define ${nameUp}_${fn}_SP_MAX   ${p.spMax  ?? 100}`);
+      push(`#define ${nameUp}_${fn}_SP_STEP  ${p.spStep ?? 1}`);
+      push('');
+    });
+
+    push('/* ---- Edit-mode state ---- */');
+    push('static uint8_t _edit_screen = 0xFF;');
+    push('static uint8_t _edit_field  = 0xFF;');
+    if (isKeypad) {
+      push('static char    _kpd_buf[8];');
+      push('static uint8_t _kpd_len;');
+    }
+    push('');
+    push('static inline void LCD_EditExit(void) { _edit_screen = _edit_field = 0xFF; }');
+    push('');
+
+    // Per-field LCD_EditEnter_*()
+    editableFields.forEach(({ si, p, localEi, nameUp, namePascal }) => {
+      const fn   = p.name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+      const fnLo = p.name.replace(/[^a-zA-Z0-9]/g, '_');
+      const vname = `sp_${namePascal}_${fnLo}`;
+      push(`static inline void LCD_EditEnter_${namePascal}_${fnLo}(void) {`);
+      push(`    _edit_screen = ${si}; _edit_field = ${localEi};`);
+      if (isKeypad) {
+        push(`    _kpd_len = 0; _kpd_buf[0] = '\\0';`);
+      }
+      push(`    LCD_Update_${namePascal}_${fnLo}(${vname});`);
+      push(`    lcd_gotoxy(${nameUp}_${fn}_COL, ${nameUp}_${fn}_ROW);`);
+      push('}');
+      push('');
+    });
+
+    // _nav_edit_apply(delta) — used by button/rotary and by 4x4 keypad A/B keys
+    push('static inline void _nav_edit_apply(int8_t delta) {');
+    editableFields.forEach(({ si, p, localEi, nameUp, namePascal }) => {
+      const fn   = p.name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+      const fnLo = p.name.replace(/[^a-zA-Z0-9]/g, '_');
+      const vname = `sp_${namePascal}_${fnLo}`;
+      push(`    if (_edit_screen == ${si} && _edit_field == ${localEi}) {`);
+      push(`        ${vname} += (int16_t)delta * ${nameUp}_${fn}_SP_STEP;`);
+      push(`        if (${vname} < ${nameUp}_${fn}_SP_MIN) ${vname} = ${nameUp}_${fn}_SP_MIN;`);
+      push(`        if (${vname} > ${nameUp}_${fn}_SP_MAX) ${vname} = ${nameUp}_${fn}_SP_MAX;`);
+      push(`        LCD_Update_${namePascal}_${fnLo}(${vname});`);
+      push(`        lcd_gotoxy(${nameUp}_${fn}_COL, ${nameUp}_${fn}_ROW);`);
+      push(`        return;`);
+      push(`    }`);
+    });
+    push('}');
+    push('');
+
+    if (isKeypad) {
+      // Live refresh of digit buffer on LCD
+      push('static inline void _kpd_edit_refresh(void) {');
+      push('    switch (_edit_screen) {');
+      editableFields.forEach(({ si, p, localEi, nameUp }) => {
+        const fn = p.name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+        push(`        case ${si}: if (_edit_field == ${localEi}) {`);
+        push(`            lcd_gotoxy(${nameUp}_${fn}_COL, ${nameUp}_${fn}_ROW);`);
+        push(`            uint8_t _i = 0;`);
+        push(`            while (_i < _kpd_len && _i < ${nameUp}_${fn}_WIDTH) { lcd_putchar(_kpd_buf[_i]); _i++; }`);
+        push(`            while (_i < ${nameUp}_${fn}_WIDTH) { lcd_putchar('_'); _i++; }`);
+        push(`        } break;`);
+      });
+      push('    }');
+      push('}');
+      push('');
+
+      // Confirm: parse buffer, clamp, save
+      push('static inline void _nav_kpd_confirm(void) {');
+      push('    if (_kpd_len == 0) { LCD_EditExit(); return; }');
+      push('    int16_t _v = (int16_t)atoi(_kpd_buf);');
+      editableFields.forEach(({ si, p, localEi, nameUp, namePascal }) => {
+        const fn   = p.name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+        const fnLo = p.name.replace(/[^a-zA-Z0-9]/g, '_');
+        const vname = `sp_${namePascal}_${fnLo}`;
+        push(`    if (_edit_screen == ${si} && _edit_field == ${localEi}) {`);
+        push(`        if (_v < ${nameUp}_${fn}_SP_MIN) _v = ${nameUp}_${fn}_SP_MIN;`);
+        push(`        if (_v > ${nameUp}_${fn}_SP_MAX) _v = ${nameUp}_${fn}_SP_MAX;`);
+        push(`        ${vname} = _v;`);
+        push(`        LCD_Update_${namePascal}_${fnLo}(_v);`);
+        push(`    }`);
+      });
+      push('    LCD_EditExit();');
+      push('}');
+      push('');
+    }
+  }
+
+  // ── Navigation ────────────────────────────────────────────────────────
+  if (inputMethod !== 'none' && screens.length > 1) {
+    push('/* ---- Navigation state machine ------------------------------------------- */');
+    push('');
+
+    // Screen index #defines
+    screens.forEach((s, i) => {
+      const nameUp = s.name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+      push(`#define SCREEN_${nameUp} ${i}`);
+    });
+    push('');
+
+    // Current screen variable + switch helper
+    push('static uint8_t _nav_cur = 0;');
+    push('');
+    push('static inline void LCD_SwitchTo(uint8_t screen) {');
+    push('    _nav_cur = screen;');
+    push('    switch (screen) {');
+    screens.forEach((s, i) => {
+      const namePascal = s.name.replace(/[^a-zA-Z0-9]/g, '_');
+      push(`        case ${i}: LCD_Show_${namePascal}_Static(); break;`);
+    });
+    push('    }');
+    push('}');
+    push('');
+
+    if (inputMethod === '2btn' || inputMethod === '4btn') {
+      // Button pin #defines
+      if (inputMethod === '2btn') {
+        push(`#define NAV_PIN_NEXT   ${navPins.up   ?? 2}`);
+        push(`#define NAV_PIN_SELECT ${navPins.select ?? 4}`);
+      } else {
+        push(`#define NAV_PIN_UP     ${navPins.up     ?? 2}`);
+        push(`#define NAV_PIN_DOWN   ${navPins.down   ?? 3}`);
+        push(`#define NAV_PIN_SELECT ${navPins.select ?? 4}`);
+        push(`#define NAV_PIN_BACK   ${navPins.back   ?? 5}`);
+      }
+      push('');
+
+      // Init — set pin modes
+      const pins = inputMethod === '2btn'
+        ? ['NAV_PIN_NEXT', 'NAV_PIN_SELECT']
+        : ['NAV_PIN_UP', 'NAV_PIN_DOWN', 'NAV_PIN_SELECT', 'NAV_PIN_BACK'];
+      push('static inline void LCD_Nav_Init(void) {');
+      pins.forEach(p => push(`    pinMode(${p}, INPUT_PULLUP);`));
+      push('}');
+      push('');
+
+      // Transition table (static const array)
+      if (transitions.length) {
+        const events = inputMethod === '2btn' ? ['next', 'select'] : ['up', 'down', 'select', 'back'];
+        push('/* Transition table: { from_screen, event_index, to_screen } */');
+        push(`static const uint8_t _nav_table[][3] = {`);
+        transitions.forEach(t => {
+          const evIdx = events.indexOf(t.event);
+          if (evIdx >= 0) push(`    { ${t.from}, ${evIdx}, ${t.to} },`);
+        });
+        push('};');
+        push(`#define _NAV_TABLE_SIZE (sizeof(_nav_table) / sizeof(_nav_table[0]))`);
+        push('');
+      }
+
+      // Update function — debounced button reading + state machine
+      push('static inline void LCD_Nav_Update(void) {');
+      push('    static uint32_t _last = 0;');
+      push('    if ((uint32_t)(millis() - _last) < 200UL) return;');
+      push('');
+      if (inputMethod === '2btn') {
+        push('    int8_t ev = -1;');
+        push('    if (!digitalRead(NAV_PIN_NEXT))   ev = 0;');
+        push('    else if (!digitalRead(NAV_PIN_SELECT)) ev = 1;');
+      } else {
+        push('    int8_t ev = -1;');
+        push('    if      (!digitalRead(NAV_PIN_UP))     ev = 0;');
+        push('    else if (!digitalRead(NAV_PIN_DOWN))   ev = 1;');
+        push('    else if (!digitalRead(NAV_PIN_SELECT)) ev = 2;');
+        push('    else if (!digitalRead(NAV_PIN_BACK))   ev = 3;');
+      }
+      push('    if (ev < 0) return;');
+      push('    _last = millis();');
+      // Edit mode: up/next=+1, down=-1, select/back=exit
+      if (editableFields.length) {
+        push('    if (_edit_field != 0xFF) {');
+        if (inputMethod === '4btn') {
+          push('        if (ev == 0) { _nav_edit_apply(+1); return; }');
+          push('        if (ev == 1) { _nav_edit_apply(-1); return; }');
+          push('        if (ev == 2 || ev == 3) { LCD_EditExit(); return; }');
+        } else {
+          push('        if (ev == 0) { _nav_edit_apply(+1); return; }');
+          push('        if (ev == 1) { LCD_EditExit(); return; }');
+        }
+        push('        return;');
+        push('    }');
+      }
+      if (transitions.length) {
+        push('    for (uint8_t i = 0; i < _NAV_TABLE_SIZE; i++) {');
+        push('        if (_nav_table[i][0] == _nav_cur && _nav_table[i][1] == (uint8_t)ev) {');
+        push('            LCD_SwitchTo(_nav_table[i][2]);');
+        push('            return;');
+        push('        }');
+        push('    }');
+      }
+      push('}');
+      push('');
+
+    } else if (inputMethod === 'rotary') {
+      push(`#define NAV_PIN_CLK ${navPins.clk ?? 2}`);
+      push(`#define NAV_PIN_DT  ${navPins.dt  ?? 3}`);
+      push(`#define NAV_PIN_SW  ${navPins.sw  ?? 4}`);
+      push('');
+      push('static inline void LCD_Nav_Init(void) {');
+      push('    pinMode(NAV_PIN_CLK, INPUT_PULLUP);');
+      push('    pinMode(NAV_PIN_DT,  INPUT_PULLUP);');
+      push('    pinMode(NAV_PIN_SW,  INPUT_PULLUP);');
+      push('}');
+      push('');
+
+      if (transitions.length) {
+        const events = ['cw', 'ccw', 'press'];
+        push('static const uint8_t _nav_table[][3] = {');
+        transitions.forEach(t => {
+          const evIdx = events.indexOf(t.event);
+          if (evIdx >= 0) push(`    { ${t.from}, ${evIdx}, ${t.to} },`);
+        });
+        push('};');
+        push('#define _NAV_TABLE_SIZE (sizeof(_nav_table) / sizeof(_nav_table[0]))');
+        push('');
+      }
+
+      push('static inline void LCD_Nav_Update(void) {');
+      push('    static uint8_t  _last_clk = HIGH;');
+      push('    static uint32_t _last_sw  = 0;');
+      push('    int8_t ev = -1;');
+      push('    uint8_t clk = digitalRead(NAV_PIN_CLK);');
+      push('    if (clk != _last_clk && clk == LOW) {');
+      push('        ev = (digitalRead(NAV_PIN_DT) != clk) ? 0 : 1; /* 0=CW 1=CCW */');
+      push('    }');
+      push('    _last_clk = clk;');
+      push('    if (ev < 0) {');
+      push('        if (!digitalRead(NAV_PIN_SW) && (uint32_t)(millis() - _last_sw) > 250UL) {');
+      push('            ev = 2; _last_sw = millis();');
+      push('        }');
+      push('    }');
+      push('    if (ev < 0) return;');
+      // Edit mode: CW=+1, CCW=-1, press=exit
+      if (editableFields.length) {
+        push('    if (_edit_field != 0xFF) {');
+        push('        if (ev == 0) { _nav_edit_apply(+1); return; }');
+        push('        if (ev == 1) { _nav_edit_apply(-1); return; }');
+        push('        if (ev == 2) { LCD_EditExit(); return; }');
+        push('        return;');
+        push('    }');
+      }
+      if (transitions.length) {
+        push('    for (uint8_t i = 0; i < _NAV_TABLE_SIZE; i++) {');
+        push('        if (_nav_table[i][0] == _nav_cur && _nav_table[i][1] == (uint8_t)ev) {');
+        push('            LCD_SwitchTo(_nav_table[i][2]);');
+        push('            return;');
+        push('        }');
+        push('    }');
+      }
+      push('}');
+      push('');
+    } else if (isKeypad) {
+      const kCols = inputMethod === '4x3kpd' ? 3 : 4;
+      const r0 = navPins.kpdR0 ?? 2, r1 = navPins.kpdR1 ?? 3;
+      const r2 = navPins.kpdR2 ?? 4, r3 = navPins.kpdR3 ?? 5;
+      const c0 = navPins.kpdC0 ?? 6, c1 = navPins.kpdC1 ?? 7;
+      const c2 = navPins.kpdC2 ?? 8, c3 = navPins.kpdC3 ?? 9;
+
+      push('#include <Keypad.h>');
+      push(`#define _KPD_ROWS 4`);
+      push(`#define _KPD_COLS ${kCols}`);
+      if (kCols === 3) {
+        push(`static const char _kpd_map[4][3] = {`);
+        push(`    {'1','2','3'},  /* row 0 */`);
+        push(`    {'4','5','6'},  /* row 1 */`);
+        push(`    {'7','8','9'},  /* row 2 */`);
+        push(`    {'*','0','#'}   /* row 3: *=back  #=confirm */`);
+        push(`};`);
+      } else {
+        push(`static const char _kpd_map[4][4] = {`);
+        push(`    {'1','2','3','A'},  /* A=up */`);
+        push(`    {'4','5','6','B'},  /* B=down */`);
+        push(`    {'7','8','9','C'},  /* C=select/confirm */`);
+        push(`    {'*','0','#','D'}   /* D=back/cancel */`);
+        push(`};`);
+      }
+      const colList = kCols === 3
+        ? `${c0}, ${c1}, ${c2}`
+        : `${c0}, ${c1}, ${c2}, ${c3}`;
+      push(`static uint8_t _kpd_row_pins[4] = {${r0}, ${r1}, ${r2}, ${r3}};`);
+      push(`static uint8_t _kpd_col_pins[${kCols}] = {${colList}};`);
+      push(`static Keypad _keypad = Keypad(makeKeymap((char*)_kpd_map), _kpd_row_pins, _kpd_col_pins, 4, ${kCols});`);
+      push('');
+
+      // Transition table — same event mapping as 4btn: up=0, down=1, select=2, back=3
+      if (transitions.length) {
+        const events = ['up', 'down', 'select', 'back'];
+        push('static const uint8_t _nav_table[][3] = {');
+        transitions.forEach(t => {
+          const evIdx = events.indexOf(t.event);
+          if (evIdx >= 0) push(`    { ${t.from}, ${evIdx}, ${t.to} },`);
+        });
+        push('};');
+        push('#define _NAV_TABLE_SIZE (sizeof(_nav_table) / sizeof(_nav_table[0]))');
+        push('');
+      }
+
+      push('static inline void LCD_Nav_Init(void) { /* Keypad library handles pin setup */ }');
+      push('');
+
+      push('static inline void LCD_Nav_Update(void) {');
+      push('    char _key = _keypad.getKey();');
+      push('    if (!_key) return;');
+      push('');
+      if (editableFields.length) {
+        push('    if (_edit_field != 0xFF) {');
+        push(`        if (_key >= '0' && _key <= '9') {`);
+        push(`            if (_kpd_len < 6) { _kpd_buf[_kpd_len++] = _key; _kpd_buf[_kpd_len] = '\\0'; }`);
+        push('            _kpd_edit_refresh();');
+        push('            return;');
+        push('        }');
+        push(`        if (_key == '*') {`);
+        push(`            if (_kpd_len > 0) { _kpd_buf[--_kpd_len] = '\\0'; _kpd_edit_refresh(); }`);
+        push('            else LCD_EditExit();');
+        push('            return;');
+        push('        }');
+        push(`        if (_key == '#' || _key == 'C' || _key == 'D') { _nav_kpd_confirm(); return; }`);
+        if (kCols === 4) {
+          push(`        if (_key == 'A') { _nav_edit_apply(+1); return; }`);
+          push(`        if (_key == 'B') { _nav_edit_apply(-1); return; }`);
+        }
+        push('        return;');
+        push('    }');
+        push('');
+      }
+      push('    int8_t ev = -1;');
+      if (kCols === 3) {
+        push(`    if      (_key == '2') ev = 0;`);
+        push(`    else if (_key == '8') ev = 1;`);
+        push(`    else if (_key == '#') ev = 2;`);
+        push(`    else if (_key == '*') ev = 3;`);
+      } else {
+        push(`    if      (_key == 'A' || _key == '2') ev = 0;`);
+        push(`    else if (_key == 'B' || _key == '8') ev = 1;`);
+        push(`    else if (_key == 'C' || _key == '#') ev = 2;`);
+        push(`    else if (_key == 'D' || _key == '*') ev = 3;`);
+      }
+      push('    if (ev < 0) return;');
+      if (transitions.length) {
+        push('    for (uint8_t i = 0; i < _NAV_TABLE_SIZE; i++) {');
+        push('        if (_nav_table[i][0] == _nav_cur && _nav_table[i][1] == (uint8_t)ev) {');
+        push('            LCD_SwitchTo(_nav_table[i][2]);');
+        push('            return;');
+        push('        }');
+        push('    }');
+      }
+      push('}');
+      push('');
+    }
+
+    push('/* Usage:');
+    push(' *   void setup() { LCD_Init(); LCD_Nav_Init(); LCD_SwitchTo(0); }');
+    push(' *   void loop()  { LCD_Nav_Update(); }');
+    if (editableFields.length) {
+      push(' *   // Enter edit mode (e.g. when a menu item is selected):');
+      editableFields.forEach(({ namePascal, p }) => {
+        const fnLo = p.name.replace(/[^a-zA-Z0-9]/g, '_');
+        push(` *   LCD_EditEnter_${namePascal}_${fnLo}();`);
+      });
+      push(` *   // Read value: int16_t v = sp_${editableFields[0].namePascal}_${editableFields[0].p.name.replace(/[^a-zA-Z0-9]/g, '_')};`);
+    }
+    push(' * ---- */');
+    push('');
+  }
 
   push('#endif /* LCD_SCREENS_H */');
 

@@ -10,6 +10,7 @@ import CodePanel from './components/CodePanel'
 import PlaceholderDialog from './components/PlaceholderDialog'
 import SpecialCharPicker from './components/SpecialCharPicker'
 import ArduinoGuide from './components/ArduinoGuide'
+import NavPanel from './components/NavPanel'
 
 export default function App() {
   const { state } = useStore()
@@ -81,6 +82,7 @@ export default function App() {
         <div className="right-panel">
           <FieldsPanel onEdit={handleEditPlaceholder} />
           <CgramPanel />
+          <NavPanel />
           <div className="panel-section">
             <div className="panel-title">
               <span className="panel-title-text">Stability</span>

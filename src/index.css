@@ -201,3 +201,56 @@ canvas.lcd-canvas:focus{box-shadow:0 0 0 2px rgba(74,222,128,0.2)}
 .nd-btn:hover{background:#0f1f0f;color:#9ab89a}
 .nd-btn.confirm{background:#166534;border-color:#166534;color:#bbf7d0}
 .nd-btn.confirm:hover{background:#15803d}
+
+/* ── Navigation Panel ── */
+.nav-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.nav-label{font-size:11px;color:#4a6a4a;width:72px;flex-shrink:0}
+.nav-select{flex:1;padding:4px 7px;border-radius:5px;font-size:11px;font-family:inherit;background:#181f18;border:1px solid #1e2a1e;color:#9ab89a;cursor:pointer;outline:none}
+.nav-select:hover{border-color:#2a3a2a}
+.nav-pin-input{width:52px;padding:4px 7px;border-radius:5px;font-size:11px;font-family:'JetBrains Mono',monospace;background:#181f18;border:1px solid #1e2a1e;color:#9ab89a;outline:none}
+.nav-pin-input:focus{border-color:#166534}
+.nav-pins{margin-bottom:4px}
+.nav-section-label{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#3a5a3a;margin:10px 0 6px}
+.nav-table{border:1px solid #1a261a;border-radius:5px;overflow:hidden;margin-bottom:6px}
+.nav-th-row{display:grid;grid-template-columns:1fr auto 1fr 20px;gap:4px;padding:4px 8px;background:#0f1a0f;border-bottom:1px solid #1a261a}
+.nav-th{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#3a5a3a}
+.nav-tr{display:grid;grid-template-columns:1fr auto 1fr 20px;gap:4px;padding:5px 8px;border-bottom:1px solid #121a12;align-items:center}
+.nav-tr:last-child{border-bottom:none}
+.nav-td{font-size:11px;color:#9ab89a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-event{color:#4ade80;font-family:'JetBrains Mono',monospace;font-size:10px}
+.nav-del-btn{background:none;border:none;color:#3a5a3a;cursor:pointer;font-size:11px;padding:0;line-height:1;text-align:center}
+.nav-del-btn:hover{color:#f87171}
+.nav-add-row{display:flex;align-items:center;gap:4px;margin-top:4px;flex-wrap:wrap}
+.nav-mini-select{flex:1;min-width:60px;padding:3px 5px;border-radius:4px;font-size:11px;font-family:inherit;background:#181f18;border:1px solid #1e2a1e;color:#9ab89a;cursor:pointer;outline:none}
+.nav-mini-select:hover{border-color:#2a3a2a}
+.nav-arrow{font-size:11px;color:#2a4a2a;flex-shrink:0}
+.nav-add-btn{padding:3px 9px;border-radius:4px;font-size:13px;font-weight:700;cursor:pointer;background:#166534;border:none;color:#bbf7d0;line-height:1;flex-shrink:0}
+.nav-add-btn:hover{background:#15803d}
+.nav-hint{font-size:11px;color:#3a5a3a;font-style:italic;margin-top:4px}
+
+/* ── Sidebar groups ── */
+.sidebar-group-hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 12px 4px;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#3a5a3a}
+.sidebar-group-add{background:none;border:none;color:#3a5a3a;cursor:pointer;font-size:14px;line-height:1;padding:0 2px;border-radius:3px}
+.sidebar-group-add:hover{color:#4ade80;background:#1a2a1a}
+.sidebar-empty{font-size:11px;color:#2a3a2a;padding:4px 14px 6px;font-style:italic}
+.settings-icon{border-color:#7aba7a !important;background:#0a1a0a !important}
+
+/* ── Keypad diagram ── */
+.kpd-diagram{margin:8px 0;background:#0a150a;border:1px solid #1a2a1a;border-radius:6px;padding:8px}
+.kpd-row{display:flex;gap:4px;justify-content:center;margin-bottom:4px}
+.kpd-row:last-child{margin-bottom:0}
+.kpd-key{width:36px;height:28px;border:1px solid #1e3a1e;border-radius:4px;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;font-family:'JetBrains Mono',monospace;color:#6a8a6a;position:relative}
+.kpd-key-role{border-color:#166534;background:#0f1f0f;color:#9ab89a}
+.kpd-role{font-size:8px;color:#4ade80;line-height:1}
+.kpd-hint{font-size:10px;color:#3a5a3a;margin-top:6px;text-align:center;line-height:1.4}
+.kpd-pin-group-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#3a5a3a;margin-bottom:4px}
+.kpd-pin-row{display:flex;gap:4px;flex-wrap:wrap}
+.kpd-pin-cell{display:flex;flex-direction:column;gap:2px}
+.kpd-pin-label{font-size:9px;color:#3a5a3a;text-align:center}
+
+/* ── Setpoint fields ── */
+.sp-toggle{display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer}
+.sp-toggle input[type="checkbox"]{accent-color:#4ade80;width:13px;height:13px;cursor:pointer;flex-shrink:0}
+.sp-toggle-label{font-size:11px;color:#7aaa7a}
+.sp-config{background:#0a150a;border:1px solid #1a2a1a;border-radius:6px;padding:10px;margin-bottom:10px}
+.field-sp-badge{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:.05em;background:#166534;color:#4ade80;vertical-align:middle}
