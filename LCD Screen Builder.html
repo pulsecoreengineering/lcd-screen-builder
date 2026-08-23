@@ -1,604 +1,1090 @@
 <title>LCD Screen Builder</title>
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;500;600&display=swap">
-
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap">
 <style>
-/* ── Tokens (dark-first) ─────────────────────────────────────── */
-:root {
-  --bg:        #0b0d12;
-  --surface:   #131825;
-  --surface2:  #1a2235;
-  --border:    #1e2a40;
-  --text:      #b8c8e0;
-  --text-dim:  #4e607c;
-  --text-hi:   #dce8f8;
-  --accent:    #00e87a;
-  --radius:    8px;
-
-  /* LCD segment tokens — default = green */
-  --lcd-bg:    #090f09;
-  --lcd-on:    #39ff14;
-  --lcd-off:   #0d220d;
-  --lcd-glow:  rgba(57,255,20,0.45);
-  --lcd-bezel: #18201a;
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    --bg:       #d8dfe8;
-    --surface:  #e8edf4;
-    --surface2: #f2f5f9;
-    --border:   #c0cad6;
-    --text:     #2a3548;
-    --text-dim: #7a8a9e;
-    --text-hi:  #141e2e;
-    --accent:   #009a54;
-    --lcd-bezel:#1e2820;
-  }
-}
-:root[data-theme="dark"] {
-  --bg:#0b0d12;--surface:#131825;--surface2:#1a2235;--border:#1e2a40;
-  --text:#b8c8e0;--text-dim:#4e607c;--text-hi:#dce8f8;--accent:#00e87a;--lcd-bezel:#18201a;
-}
-:root[data-theme="light"] {
-  --bg:#d8dfe8;--surface:#e8edf4;--surface2:#f2f5f9;--border:#c0cad6;
-  --text:#2a3548;--text-dim:#7a8a9e;--text-hi:#141e2e;--accent:#009a54;--lcd-bezel:#1e2820;
-}
-
-/* ── LCD Colour Themes ───────────────────────────────────────── */
-.t-green { --lcd-bg:#090f09; --lcd-on:#39ff14; --lcd-off:#0c1e0c; --lcd-glow:rgba(57,255,20,0.45); }
-.t-amber { --lcd-bg:#120a00; --lcd-on:#ffaa00; --lcd-off:#231200; --lcd-glow:rgba(255,170,0,0.45); }
-.t-red   { --lcd-bg:#130004; --lcd-on:#ff2244; --lcd-off:#230006; --lcd-glow:rgba(255,34,68,0.45); }
-.t-blue  { --lcd-bg:#000d1c; --lcd-on:#00bbff; --lcd-off:#001428; --lcd-glow:rgba(0,187,255,0.45); }
-.t-white { --lcd-bg:#161616; --lcd-on:#f0f0f0; --lcd-off:#2c2c2c; --lcd-glow:rgba(240,240,240,0.2); }
-.t-neg   { --lcd-bg:#8fc08a; --lcd-on:#162c14; --lcd-off:#a0cea0; --lcd-glow:rgba(0,0,0,0); }
-
-/* ── Reset ───────────────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:var(--bg);color:var(--text);
-  font-family:'Inter',system-ui,sans-serif;font-size:13px;line-height:1.5;
-  -webkit-font-smoothing:antialiased}
+html,body{height:100%;background:#0d0d0d;color:#c8d8c0;font-family:'Inter',system-ui,sans-serif;font-size:13px;-webkit-font-smoothing:antialiased}
 
-/* ── App Shell ───────────────────────────────────────────────── */
-.app{display:grid;grid-template-rows:50px 1fr;height:100vh;overflow:hidden}
+/* ── Layout ── */
+.app{display:grid;grid-template-rows:44px 1fr auto;height:100vh;overflow:hidden}
 
 /* Header */
-.hdr{display:flex;align-items:center;padding:0 18px;gap:14px;
-  background:var(--surface);border-bottom:1px solid var(--border)}
-.hdr-logo{font-family:'Share Tech Mono',monospace;font-size:13px;
-  color:var(--accent);letter-spacing:.1em}
-.hdr-logo span{opacity:.35}
+.hdr{display:flex;align-items:center;padding:0 14px;gap:8px;background:#111;border-bottom:1px solid #1e2a1e}
+.hdr-logo{display:flex;align-items:center;gap:7px;margin-right:8px}
+.hdr-logo-badge{background:#166534;color:#4ade80;font-size:10px;font-weight:700;padding:2px 5px;border-radius:3px;font-family:'JetBrains Mono',monospace;letter-spacing:.05em}
+.hdr-logo-text{font-size:13px;font-weight:600;color:#e2e8e0}
+.hdr-sep{width:1px;height:20px;background:#1e2a1e;margin:0 4px}
+.tab-group{display:flex;gap:2px}
+.tab{padding:5px 12px;border-radius:5px;font-size:12px;font-weight:500;cursor:pointer;background:none;border:none;color:#6a8a6a;transition:all .15s}
+.tab:hover{color:#9ab89a;background:#1a231a}
+.tab.active{background:#166534;color:#bbf7d0;font-weight:600}
 .hdr-space{flex:1}
-.hdr-btn{background:none;border:1px solid var(--border);color:var(--text-dim);
-  border-radius:5px;padding:4px 10px;cursor:pointer;font:inherit;font-size:12px;
-  transition:border-color .15s,color .15s}
-.hdr-btn:hover{border-color:var(--accent);color:var(--text)}
+.hdr-count{font-size:11px;color:#4a6a4a;padding:0 8px}
+.hdr-btn{padding:5px 11px;border-radius:5px;font-size:12px;font-weight:500;cursor:pointer;background:none;border:1px solid #1e2a1e;color:#8aaa8a;transition:all .15s;font-family:inherit}
+.hdr-btn:hover{border-color:#2a3a2a;color:#b8d8b8}
+.hdr-btn.primary{background:#166534;border-color:#166534;color:#bbf7d0}
+.hdr-btn.primary:hover{background:#15803d}
 
 /* Body */
-.body{display:grid;grid-template-columns:1fr 292px;overflow:hidden}
+.body{display:grid;grid-template-columns:200px 1fr 260px;overflow:hidden}
 
-/* ── Preview ─────────────────────────────────────────────────── */
-.preview{background:var(--bg);display:flex;align-items:center;justify-content:center;
-  padding:40px;overflow:hidden;position:relative}
-.preview::before{
-  content:'';position:absolute;inset:0;
-  background-image:radial-gradient(circle,var(--border) 1px,transparent 1px);
-  background-size:28px 28px;opacity:.4;pointer-events:none}
+/* ── Left sidebar ── */
+.sidebar{background:#111;border-right:1px solid #1a261a;display:flex;flex-direction:column;overflow:hidden}
+.sidebar-hdr{padding:10px 12px 8px;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#3a5a3a}
+.screen-list{flex:1;overflow-y:auto;padding:0 6px}
+.screen-item{display:flex;align-items:center;gap:4px;padding:6px 8px;border-radius:5px;cursor:pointer;margin-bottom:2px;border:1px solid transparent;transition:all .12s}
+.screen-item:hover{background:#142014}
+.screen-item.active{background:#122212;border-color:#1e3a1e}
+.screen-icon{width:14px;height:10px;border:1px solid #2a4a2a;border-radius:2px;background:#0a160a;flex-shrink:0}
+.screen-icon.active-icon{border-color:#4ade80;background:#0f2010}
+.screen-name{flex:1;font-size:12px;color:#9ab89a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.screen-name.active-name{color:#d4f4d4}
+.screen-actions{display:flex;gap:2px;opacity:0;transition:opacity .12s}
+.screen-item:hover .screen-actions{opacity:1}
+.screen-act-btn{background:none;border:none;color:#4a6a4a;cursor:pointer;padding:2px 4px;border-radius:3px;font-size:11px;line-height:1}
+.screen-act-btn:hover{background:#1e301e;color:#9ab89a}
+.sidebar-footer{padding:10px 8px;border-top:1px solid #1a261a}
+.new-screen-btn{width:100%;padding:7px;border:1px dashed #1e3a1e;border-radius:5px;background:none;color:#4a6a4a;font-size:12px;cursor:pointer;transition:all .15s;font-family:inherit}
+.new-screen-btn:hover{border-color:#2a5a2a;color:#8aaa8a;background:#0f1f0f}
 
-/* Device casing */
-.device{position:relative;z-index:1;background:var(--lcd-bezel);
-  border-radius:14px;padding:18px 22px 14px;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.07),
-    inset 0 -2px 0 rgba(0,0,0,.5),
-    0 24px 72px rgba(0,0,0,.7),
-    0 6px 24px rgba(0,0,0,.5)}
-.device-label{font-family:'Share Tech Mono',monospace;font-size:8px;
-  letter-spacing:.22em;color:rgba(255,255,255,.12);text-transform:uppercase;
-  text-align:right;margin-bottom:10px}
-.device-screws{display:flex;justify-content:space-between;margin-bottom:8px;padding:0 2px}
-.screw{width:7px;height:7px;border-radius:50%;background:rgba(0,0,0,.4);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);position:relative}
-.screw::after{content:'';position:absolute;inset:2px;border-radius:50%;
-  background:linear-gradient(135deg,rgba(255,255,255,.08),transparent)}
+/* ── Editor ── */
+.editor{display:flex;flex-direction:column;overflow:hidden;background:#0d0d0d}
+.editor-tabs{display:flex;align-items:center;padding:0 16px;border-bottom:1px solid #1a261a;background:#0f0f0f;min-height:38px}
+.editor-tab{padding:8px 14px;font-size:12px;font-weight:500;color:#4a6a4a;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.editor-tab.active{color:#4ade80;border-bottom-color:#4ade80}
+.editor-breadcrumb{flex:1;text-align:right;font-size:11px;color:#3a5a3a}
+.editor-breadcrumb span{color:#5a8a5a}
+.editor-body{flex:1;overflow-y:auto;padding:16px}
 
-/* LCD screen */
-.screen{background:var(--lcd-bg);border-radius:5px;
-  padding:14px 16px;overflow:hidden;position:relative;
-  box-shadow:inset 0 2px 10px rgba(0,0,0,.7),0 0 0 1px rgba(0,0,0,.6)}
-.screen::after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:5px;
-  background:repeating-linear-gradient(to bottom,transparent,transparent 2px,
-    rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px)}
+/* Info banner */
+.info-banner{background:#0a1a0a;border:1px solid #1a3a1a;border-left:3px solid #166534;border-radius:5px;padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start}
+.info-icon{color:#4ade80;font-size:12px;margin-top:1px;flex-shrink:0}
+.info-text{font-size:11px;color:#5a8a5a;line-height:1.5}
+.info-text code{background:#0f2010;color:#4ade80;padding:1px 5px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:11px;border:1px solid #1a3a1a}
 
-#lcd{display:block;transition:opacity .1s}
+/* Toolbar */
+.editor-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.insert-ph-btn{padding:6px 12px;background:#166534;border:none;border-radius:5px;color:#bbf7d0;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:5px}
+.insert-ph-btn:hover{background:#15803d}
+.insert-ph-btn .ph-icon{font-size:13px}
+.special-btn{padding:6px 11px;background:none;border:1px solid #1e3a1e;border-radius:5px;color:#6a8a6a;font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:5px}
+.special-btn:hover{border-color:#2a5a2a;color:#9ab89a;background:#0f1f0f}
+.toolbar-sep{width:1px;height:18px;background:#1a261a}
+.badge{padding:3px 8px;border-radius:12px;font-size:10px;font-weight:600;letter-spacing:.03em}
+.badge-outline{border:1px solid #1e3a1e;color:#4a6a4a}
+.badge-field{background:#1a3a1a;border:1px solid #166534;color:#4ade80}
+.badge-cgram{background:#2a1a0a;border:1px solid #7c3a0a;color:#fb923c}
 
-/* Segment colours via CSS var cascade */
-.seg-on{fill:var(--lcd-on)}
-.seg-off{fill:var(--lcd-off)}
+/* LCD display area */
+.lcd-area{margin-bottom:12px}
+.lcd-markers-row{display:flex;padding-left:32px;margin-bottom:2px;height:14px;position:relative}
+.lcd-col-marker{position:absolute;font-family:'JetBrains Mono',monospace;font-size:9px;color:#2a4a2a;text-align:center}
+.lcd-main-row{display:flex;align-items:flex-start;gap:8px}
+.lcd-row-labels{display:flex;flex-direction:column;width:24px;flex-shrink:0}
+.lcd-row-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:#2a4a2a;display:flex;align-items:center;justify-content:flex-end}
+.lcd-canvas-wrap{position:relative}
+canvas#lcd-canvas{display:block;cursor:text;border-radius:4px;outline:none}
+canvas#lcd-canvas:focus{box-shadow:0 0 0 2px rgba(74,222,128,0.2)}
+.lcd-status{margin-top:8px;font-size:10px;color:#3a5a3a;font-family:'JetBrains Mono',monospace;letter-spacing:.02em}
+.lcd-status span{color:#5a8a5a}
 
-/* Blink */
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-.blinking{animation:blink var(--blink-dur,800ms) step-end infinite}
+/* ── Right panel ── */
+.right-panel{background:#111;border-left:1px solid #1a261a;display:flex;flex-direction:column;overflow:hidden}
+.panel-section{border-bottom:1px solid #1a261a;padding:12px}
+.panel-section:last-child{border-bottom:none;flex:1;overflow-y:auto}
+.panel-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.panel-title-text{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#3a5a3a}
+.panel-title-count{font-size:10px;color:#4a6a4a;font-family:'JetBrains Mono',monospace}
 
-/* ── Controls sidebar ────────────────────────────────────────── */
-.sidebar{background:var(--surface);border-left:1px solid var(--border);
-  overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
-.sidebar::-webkit-scrollbar{width:3px}
-.sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+/* Dynamic fields */
+.field-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #121e12}
+.field-item:last-child{border-bottom:none}
+.field-dot{width:8px;height:8px;border-radius:50%;background:#d97706;flex-shrink:0;margin-top:3px}
+.field-info{flex:1}
+.field-name{font-size:12px;font-weight:600;color:#c8d8c0;font-family:'JetBrains Mono',monospace}
+.field-meta{font-size:10px;color:#3a5a3a;margin-top:2px;font-family:'JetBrains Mono',monospace}
+.field-del{background:none;border:none;color:#2a4a2a;cursor:pointer;padding:2px 5px;border-radius:3px;font-size:12px;line-height:1}
+.field-del:hover{background:#1e2e1e;color:#6a8a6a}
+.no-fields{font-size:11px;color:#2a4a2a;font-style:italic;padding:4px 0}
 
-/* Groups */
-.grp{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-.grp-hdr{padding:7px 11px;font-size:9px;font-weight:600;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--border)}
-.grp-body{padding:11px;display:flex;flex-direction:column;gap:9px}
+/* CGRAM */
+.cgram-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.cgram-slot{border:1px solid #1a2a1a;border-radius:4px;padding:5px;cursor:pointer;background:#0a100a;transition:all .15s;position:relative}
+.cgram-slot:hover{border-color:#2a4a2a;background:#0f180f}
+.cgram-slot.used{border-color:#1a3a1a}
+.cgram-slot.editing{border-color:#4ade80;box-shadow:0 0 0 1px #4ade8040}
+.cgram-canvas{display:block;width:100%;image-rendering:pixelated}
+.cgram-idx{font-size:8px;color:#2a4a2a;font-family:'JetBrains Mono',monospace;text-align:center;margin-top:3px}
+.cgram-hint{font-size:10px;color:#2a4a2a;margin-top:8px;line-height:1.4}
 
-/* Text input */
-.lcd-input{width:100%;background:var(--bg);border:1px solid var(--border);
-  border-radius:6px;padding:7px 10px;color:var(--text-hi);
-  font-family:'Share Tech Mono',monospace;font-size:14px;letter-spacing:.04em;
-  outline:none;transition:border-color .15s}
-.lcd-input:focus{border-color:var(--accent)}
+/* CGRAM editor popup */
+.cgram-editor{margin-top:10px;background:#0a150a;border:1px solid #1e3a1e;border-radius:5px;padding:10px;display:none}
+.cgram-editor.open{display:block}
+.cgram-editor-title{font-size:10px;color:#4a6a4a;margin-bottom:8px;font-family:'JetBrains Mono',monospace}
+.cgram-pixel-grid{display:inline-grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-bottom:8px}
+.cgram-px{width:18px;height:18px;border-radius:2px;cursor:pointer;background:#0f1f0f;border:1px solid #1a2a1a;transition:background .1s}
+.cgram-px.on{background:#4ade80;border-color:#4ade80}
+.cgram-px:hover{border-color:#2a5a2a}
+.cgram-editor-row{width:100%;margin-bottom:2px}
+.cgram-editor-btns{display:flex;gap:6px}
+.cgram-editor-btn{padding:4px 10px;font-size:11px;border:1px solid #1e3a1e;border-radius:4px;background:none;color:#6a8a6a;cursor:pointer;font-family:inherit}
+.cgram-editor-btn:hover{background:#0f1f0f;color:#9ab89a}
 
-/* Info row */
-.info{font-size:11px;color:var(--text-dim);display:flex;justify-content:space-between}
-.info-count{font-family:'Share Tech Mono',monospace;font-size:11px}
+/* Stability */
+.stability-text{font-size:11px;color:#3a5a3a;line-height:1.6}
+.stability-text em{color:#fb923c;font-style:normal}
 
-/* Slider rows */
-.row{display:flex;align-items:center;gap:8px}
-.row-label{font-size:12px;color:var(--text-dim);flex:1;white-space:nowrap}
-.row-val{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text);
-  min-width:30px;text-align:right}
-input[type=range]{flex:1;height:2px;accent-color:var(--accent);cursor:pointer;border-radius:1px}
+/* ── Bottom: Generated header ── */
+.code-panel{background:#090d09;border-top:1px solid #1a261a}
+.code-panel-hdr{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #1a261a;background:#0b0f0b}
+.code-label{font-size:11px;font-weight:600;color:#4a6a4a;display:flex;align-items:center;gap:6px}
+.code-label-icon{color:#3a5a3a;font-size:13px}
+.code-filename{font-family:'JetBrains Mono',monospace;font-size:11px;background:#0f1a0f;color:#4ade80;padding:2px 7px;border-radius:3px;border:1px solid #1a3a1a}
+.code-lines{font-size:10px;color:#2a4a2a;font-family:'JetBrains Mono',monospace;background:#0a140a;border:1px solid #1a2a1a;padding:1px 7px;border-radius:3px}
+.code-panel-space{flex:1}
+.code-toggle{background:none;border:none;color:#3a5a3a;cursor:pointer;padding:3px 7px;font-size:14px;border-radius:3px;transition:background .12s}
+.code-toggle:hover{background:#0f1a0f;color:#5a8a5a}
+.code-body{overflow-y:auto;max-height:180px;padding:12px 0}
+.code-line{display:flex;gap:0;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.65;padding:0 14px;white-space:pre}
+.code-line:hover{background:#0f1a0f}
+.c-kw{color:#fb923c}    /* #ifdef, #include, static, const, typedef, struct */
+.c-ty{color:#60a5fa}    /* uint8_t, char, lcd_field_t */
+.c-fn{color:#c084fc}    /* PROGMEM */
+.c-st{color:#4ade80}    /* string literals */
+.c-cm{color:#374a37}    /* comments */
+.c-nu{color:#f9a8d4}    /* numbers */
+.c-pp{color:#fb923c}    /* preprocessor */
+.c-nm{color:#c8d8c0}    /* names/identifiers */
+.code-action-btns{display:flex;gap:6px}
+.code-act-btn{padding:4px 10px;font-size:11px;border:1px solid #1e3a1e;border-radius:4px;background:none;color:#6a8a6a;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit;transition:all .15s}
+.code-act-btn:hover{background:#0f1f0f;color:#9ab89a;border-color:#2a5a2a}
 
-/* Theme pills */
-.pills{display:flex;gap:4px;flex-wrap:wrap}
-.pill{flex:1;min-width:34px;padding:5px 3px;border:1px solid transparent;
-  border-radius:5px;font-size:10px;font-weight:600;letter-spacing:.03em;
-  cursor:pointer;text-align:center;background:var(--bg);color:var(--text-dim);transition:all .15s}
-.pill:hover{border-color:var(--border);color:var(--text)}
-.pill.on{border-color:currentColor}
-.tp-green{color:#39ff14}.tp-amber{color:#ffaa00}.tp-red{color:#ff4455}
-.tp-blue{color:#00bbff}.tp-white{color:#888}.tp-neg{color:#3a8030}
+/* Special char picker */
+.spec-picker{position:fixed;z-index:100;background:#111;border:1px solid #2a3a2a;border-radius:6px;padding:10px;box-shadow:0 8px 32px rgba(0,0,0,.8);display:none}
+.spec-picker.open{display:block}
+.spec-picker-title{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#3a5a3a;margin-bottom:8px}
+.spec-chars{display:flex;flex-wrap:wrap;gap:3px;max-width:220px}
+.spec-char{width:24px;height:24px;background:#0a150a;border:1px solid #1a2a1a;border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:#9ab89a;transition:all .12s}
+.spec-char:hover{background:#166534;border-color:#4ade80;color:#bbf7d0}
 
-/* Toggles */
-.tog-row{display:flex;align-items:center;gap:8px}
-.tog-label{font-size:12px;color:var(--text-dim);flex:1}
-.tog{position:relative;width:30px;height:17px;flex-shrink:0}
-.tog input{opacity:0;width:0;height:0;position:absolute}
-.tog-sl{position:absolute;inset:0;background:var(--border);border-radius:9px;cursor:pointer;transition:background .2s}
-.tog-sl::after{content:'';position:absolute;top:2px;left:2px;width:13px;height:13px;
-  background:var(--text-dim);border-radius:50%;transition:transform .2s,background .2s}
-.tog input:checked+.tog-sl{background:var(--accent)}
-.tog input:checked+.tog-sl::after{transform:translateX(13px);background:#fff}
-
-/* Anim / align pills */
-.apills{display:flex;gap:4px}
-.apill{flex:1;padding:5px 4px;font-size:11px;font-weight:500;text-align:center;
-  border:1px solid var(--border);border-radius:5px;background:var(--bg);
-  color:var(--text-dim);cursor:pointer;transition:all .15s}
-.apill:hover{color:var(--text)}
-.apill.on{background:var(--accent);border-color:var(--accent);color:#000;font-weight:600}
-
-/* Export buttons */
-.xbtn{width:100%;padding:7px 11px;border:1px solid var(--border);border-radius:6px;
-  background:var(--bg);color:var(--text);font:inherit;font-size:12px;font-weight:500;
-  cursor:pointer;text-align:left;transition:all .15s;display:flex;align-items:center;gap:8px}
-.xbtn:hover{border-color:var(--accent);color:var(--text-hi)}
-.xi{font-size:13px;line-height:1;width:14px;text-align:center;color:var(--text-dim)}
+/* Name dialog */
+.name-dialog{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;display:none}
+.name-dialog.open{display:flex}
+.name-dialog-box{background:#111;border:1px solid #2a3a2a;border-radius:8px;padding:20px;width:280px;box-shadow:0 16px 48px rgba(0,0,0,.9)}
+.name-dialog-title{font-size:13px;font-weight:600;color:#c8d8c0;margin-bottom:4px}
+.name-dialog-sub{font-size:11px;color:#4a6a4a;margin-bottom:14px}
+.name-dialog-input{width:100%;background:#0a150a;border:1px solid #1e3a1e;border-radius:5px;padding:8px 10px;color:#c8d8c0;font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;transition:border-color .15s;margin-bottom:6px}
+.name-dialog-input:focus{border-color:#4ade80}
+.name-dialog-row{display:flex;gap:6px;margin-top:10px}
+.name-dialog-width{width:100%;background:#0a150a;border:1px solid #1e3a1e;border-radius:5px;padding:7px 10px;color:#c8d8c0;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;margin-bottom:0}
+.name-dialog-width:focus{border-color:#4ade80}
+.nd-btn{flex:1;padding:8px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #1e3a1e;background:none;color:#6a8a6a;font-family:inherit;transition:all .15s}
+.nd-btn:hover{background:#0f1f0f;color:#9ab89a}
+.nd-btn.confirm{background:#166534;border-color:#166534;color:#bbf7d0}
+.nd-btn.confirm:hover{background:#15803d}
 </style>
+
+<!-- Name dialog -->
+<div class="name-dialog" id="nameDialog">
+  <div class="name-dialog-box">
+    <div class="name-dialog-title">Insert Placeholder</div>
+    <div class="name-dialog-sub" id="ndSub">At col <span id="ndPos">0, row 0</span></div>
+    <input class="name-dialog-input" id="ndName" placeholder="field_name" maxlength="16" autocomplete="off" spellcheck="false">
+    <div style="font-size:10px;color:#3a5a3a;margin-bottom:10px">Width (characters):</div>
+    <input class="name-dialog-width" id="ndWidth" type="number" value="4" min="1" max="16">
+    <div class="name-dialog-row">
+      <button class="nd-btn" id="ndCancel">Cancel</button>
+      <button class="nd-btn confirm" id="ndConfirm">Insert</button>
+    </div>
+  </div>
+</div>
+
+<!-- Special char picker -->
+<div class="spec-picker" id="specPicker">
+  <div class="spec-picker-title">Special Characters</div>
+  <div class="spec-chars" id="specChars"></div>
+</div>
 
 <div class="app">
   <!-- Header -->
   <header class="hdr">
-    <div class="hdr-logo"><span>[</span> LCD BUILDER <span>]</span></div>
+    <div class="hdr-logo">
+      <div class="hdr-logo-badge">LCD</div>
+      <div class="hdr-logo-text">Screen Builder</div>
+    </div>
+    <div class="hdr-sep"></div>
+    <div class="tab-group" id="dispTabs">
+      <button class="tab active" data-dt="16x2">16×2 Char</button>
+      <button class="tab" data-dt="20x4">20×4 Char</button>
+      <button class="tab" data-dt="128x64">128×64 GLCD</button>
+    </div>
     <div class="hdr-space"></div>
-    <button class="hdr-btn" id="themeBtn">☀ Light</button>
+    <span class="hdr-count" id="screenCount">1 screen</span>
+    <button class="hdr-btn">Open</button>
+    <button class="hdr-btn">Save</button>
+    <button class="hdr-btn" id="copyHdrBtn">Copy header</button>
+    <button class="hdr-btn primary" id="dlHdrBtn">↓ Download .h</button>
   </header>
 
   <!-- Body -->
   <div class="body">
-    <!-- Preview -->
-    <div class="preview">
-      <div class="device t-green" id="device">
-        <div class="device-screws">
-          <div class="screw"></div><div class="screw"></div>
+    <!-- Left: screens -->
+    <div class="sidebar">
+      <div class="sidebar-hdr">Screens</div>
+      <div class="screen-list" id="screenList"></div>
+      <div class="sidebar-footer">
+        <button class="new-screen-btn" id="newScreenBtn">+ New screen</button>
+      </div>
+    </div>
+
+    <!-- Center: editor -->
+    <div class="editor">
+      <div class="editor-tabs">
+        <div class="editor-tab active">Editor</div>
+        <div class="editor-breadcrumb" id="breadcrumb">
+          <span id="breadScreen">HomeScreen</span> · <span id="breadType">16×2 Char</span>
         </div>
-        <div class="device-label">LCD-BUILDER · SEGMENT DISPLAY</div>
-        <div class="screen" id="screen">
-          <svg id="lcd" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div class="editor-body" id="editorBody">
+        <div class="info-banner">
+          <div class="info-icon">◎</div>
+          <div class="info-text">
+            <b style="color:#7aba7a">Future-edit aware</b><br>
+            Click a cell and type to edit static text. Click <code>+ Insert Placeholder</code> to add a dynamic field — its column and row become permanent. Placeholders show as <code>[name]</code> tokens.
+          </div>
+        </div>
+        <div class="editor-toolbar">
+          <button class="insert-ph-btn" id="insertPhBtn">
+            <span class="ph-icon">+</span> Insert Placeholder at (<span id="cursorPosLabel">0, 0</span>)
+          </button>
+          <button class="special-btn" id="specialBtn">⊞ Special chars</button>
+          <div class="toolbar-sep"></div>
+          <span class="badge badge-outline" id="dtBadge">16×2</span>
+          <span class="badge badge-field" id="fieldsBadge">0 fields</span>
+          <span class="badge badge-cgram" id="cgramBadge">0/8 CGRAM</span>
+        </div>
+        <div class="lcd-area">
+          <div class="lcd-markers-row" id="colMarkers"></div>
+          <div class="lcd-main-row">
+            <div class="lcd-row-labels" id="rowLabels"></div>
+            <div class="lcd-canvas-wrap">
+              <canvas id="lcd-canvas" tabindex="0"></canvas>
+            </div>
+          </div>
+          <div class="lcd-status">Cursor at col <span id="curCol">0</span>, row <span id="curRow">0</span> &nbsp;·&nbsp; Type to edit &nbsp;·&nbsp; Arrow keys to move &nbsp;·&nbsp; Click any cell</div>
         </div>
       </div>
     </div>
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
-
-      <!-- Text -->
-      <div class="grp">
-        <div class="grp-hdr">Display Text</div>
-        <div class="grp-body">
-          <input class="lcd-input" id="txt" type="text" value="HELLO WORLD"
-            maxlength="64" autocomplete="off" spellcheck="false" placeholder="Type anything…">
-          <div class="info">
-            <span>A–Z · 0–9 · space · - _ . :</span>
-            <span class="info-count" id="ccount">11/12</span>
+    <!-- Right panel -->
+    <div class="right-panel">
+      <div class="panel-section">
+        <div class="panel-title">
+          <span class="panel-title-text">Dynamic Fields</span>
+          <span class="panel-title-count" id="fieldCount">0</span>
+        </div>
+        <div id="fieldsList"><div class="no-fields">No placeholders yet</div></div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-title">
+          <span class="panel-title-text">CGRAM Glyphs</span>
+          <span class="panel-title-count" id="cgramCount">0/8</span>
+        </div>
+        <div class="cgram-grid" id="cgramGrid"></div>
+        <div class="cgram-hint">Double-click a slot to edit its glyph.</div>
+        <div class="cgram-editor" id="cgramEditor">
+          <div class="cgram-editor-title" id="cgramEditorTitle">Editing slot 0</div>
+          <div class="cgram-pixel-grid" id="cgramPixelGrid"></div>
+          <div class="cgram-editor-btns">
+            <button class="cgram-editor-btn" id="cgramClear">Clear</button>
+            <button class="cgram-editor-btn" id="cgramDone">Done</button>
           </div>
         </div>
       </div>
-
-      <!-- Colour theme -->
-      <div class="grp">
-        <div class="grp-hdr">Colour Theme</div>
-        <div class="grp-body">
-          <div class="pills">
-            <button class="pill tp-green on" data-t="green">Green</button>
-            <button class="pill tp-amber" data-t="amber">Amber</button>
-            <button class="pill tp-red"   data-t="red">Red</button>
-            <button class="pill tp-blue"  data-t="blue">Blue</button>
-            <button class="pill tp-white" data-t="white">White</button>
-            <button class="pill tp-neg"   data-t="neg">Neg</button>
-          </div>
+      <div class="panel-section">
+        <div class="panel-title"><span class="panel-title-text">Stability</span></div>
+        <div class="stability-text">
+          Coordinates for each field are written verbatim into the generated header. Editing static text <em>never</em> shifts a placeholder's column or row — its position is fixed at insertion time.
         </div>
       </div>
+    </div>
+  </div>
 
-      <!-- Layout -->
-      <div class="grp">
-        <div class="grp-hdr">Layout</div>
-        <div class="grp-body">
-          <div class="row">
-            <span class="row-label">Digits</span>
-            <input type="range" id="digits" min="1" max="20" value="12" step="1">
-            <span class="row-val" id="digitsV">12</span>
-          </div>
-          <div class="row">
-            <span class="row-label">Scale</span>
-            <input type="range" id="scale" min="0.4" max="3" value="1.4" step="0.1">
-            <span class="row-val" id="scaleV">1.4×</span>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:5px">
-            <span class="row-label">Align</span>
-            <div class="apills">
-              <button class="apill" data-al="left">← Left</button>
-              <button class="apill on" data-al="right">Right →</button>
-              <button class="apill" data-al="center">Center</button>
-            </div>
-          </div>
-        </div>
+  <!-- Code panel -->
+  <div class="code-panel">
+    <div class="code-panel-hdr">
+      <span class="code-label"><span class="code-label-icon">◇</span> GENERATED C HEADER</span>
+      <span class="code-filename">lcd_screens.h</span>
+      <span class="code-lines" id="lineCount">0 lines</span>
+      <div class="code-panel-space"></div>
+      <div class="code-action-btns">
+        <button class="code-act-btn" id="codeCopy">⎘ Copy</button>
+        <button class="code-act-btn" id="codeDl">↓ Download</button>
       </div>
-
-      <!-- Effects -->
-      <div class="grp">
-        <div class="grp-hdr">Effects</div>
-        <div class="grp-body">
-          <div class="tog-row">
-            <span class="tog-label">Phosphor glow</span>
-            <label class="tog"><input type="checkbox" id="glow" checked><span class="tog-sl"></span></label>
-          </div>
-          <div class="tog-row">
-            <span class="tog-label">Ghost segments</span>
-            <label class="tog"><input type="checkbox" id="ghost" checked><span class="tog-sl"></span></label>
-          </div>
-          <div class="row">
-            <span class="row-label">Brightness</span>
-            <input type="range" id="bright" min="40" max="100" value="100" step="1">
-            <span class="row-val" id="brightV">100%</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Animation -->
-      <div class="grp">
-        <div class="grp-hdr">Animation</div>
-        <div class="grp-body">
-          <div class="apills">
-            <button class="apill on" data-an="none">Static</button>
-            <button class="apill" data-an="blink">Blink</button>
-            <button class="apill" data-an="scroll">Scroll</button>
-          </div>
-          <div class="row" id="speedRow" style="display:none">
-            <span class="row-label">Speed</span>
-            <input type="range" id="speed" min="80" max="2000" value="800" step="40">
-            <span class="row-val" id="speedV">0.8s</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Export -->
-      <div class="grp">
-        <div class="grp-hdr">Export</div>
-        <div class="grp-body">
-          <button class="xbtn" id="dlSvg"><span class="xi">↓</span>Download SVG</button>
-          <button class="xbtn" id="cpSvg"><span class="xi" id="cpIcon">⎘</span>Copy SVG code</button>
-          <button class="xbtn" id="dlPng"><span class="xi">↓</span>Download PNG</button>
-        </div>
-      </div>
-
-    </aside>
+      <button class="code-toggle" id="codeToggle">▲</button>
+    </div>
+    <div class="code-body" id="codeBody"></div>
   </div>
 </div>
 
 <script>
-/* ── Segment map ─────────────────────────────────────────────────────
-   Bit layout: 0=a(top) 1=b(top-right) 2=c(bot-right) 3=d(bot)
-               4=e(bot-left) 5=f(top-left) 6=g(mid) 7=dp
-*/
-const SM = {
-  '0':0x3F,'1':0x06,'2':0x5B,'3':0x4F,'4':0x66,
-  '5':0x6D,'6':0x7D,'7':0x07,'8':0x7F,'9':0x6F,
-  'A':0x77,'B':0x7C,'C':0x39,'D':0x5E,'E':0x79,
-  'F':0x71,'G':0x3D,'H':0x76,'I':0x30,'J':0x1E,
-  'K':0x76,'L':0x38,'M':0x37,'N':0x54,'O':0x3F,
-  'P':0x73,'Q':0x67,'R':0x50,'S':0x6D,'T':0x78,
-  'U':0x3E,'V':0x3E,'W':0x2A,'X':0x76,'Y':0x6E,
-  'Z':0x5B,' ':0x00,'-':0x40,'_':0x08,'.':0x80,
+/* ══════════════════════════════════════════════════
+   5×8 LCD font (column-major, ASCII 0x20–0x7E)
+   5 bytes per char, byte = column, bit0 = top row
+   ══════════════════════════════════════════════════ */
+const F = new Uint8Array([
+  0x00,0x00,0x00,0x00,0x00, // 0x20 space
+  0x00,0x00,0x5F,0x00,0x00, // !
+  0x00,0x07,0x00,0x07,0x00, // "
+  0x14,0x7F,0x14,0x7F,0x14, // #
+  0x24,0x2A,0x7F,0x2A,0x12, // $
+  0x23,0x13,0x08,0x64,0x62, // %
+  0x36,0x49,0x55,0x22,0x50, // &
+  0x00,0x05,0x03,0x00,0x00, // '
+  0x00,0x1C,0x22,0x41,0x00, // (
+  0x00,0x41,0x22,0x1C,0x00, // )
+  0x14,0x08,0x3E,0x08,0x14, // *
+  0x08,0x08,0x3E,0x08,0x08, // +
+  0x00,0x50,0x30,0x00,0x00, // ,
+  0x08,0x08,0x08,0x08,0x08, // -
+  0x00,0x60,0x60,0x00,0x00, // .
+  0x20,0x10,0x08,0x04,0x02, // /
+  0x3E,0x51,0x49,0x45,0x3E, // 0
+  0x00,0x42,0x7F,0x40,0x00, // 1
+  0x42,0x61,0x51,0x49,0x46, // 2
+  0x21,0x41,0x45,0x4B,0x31, // 3
+  0x18,0x14,0x12,0x7F,0x10, // 4
+  0x27,0x45,0x45,0x45,0x39, // 5
+  0x3C,0x4A,0x49,0x49,0x30, // 6
+  0x01,0x71,0x09,0x05,0x03, // 7
+  0x36,0x49,0x49,0x49,0x36, // 8
+  0x06,0x49,0x49,0x29,0x1E, // 9
+  0x00,0x36,0x36,0x00,0x00, // :
+  0x00,0x56,0x36,0x00,0x00, // ;
+  0x08,0x14,0x22,0x41,0x00, // <
+  0x14,0x14,0x14,0x14,0x14, // =
+  0x00,0x41,0x22,0x14,0x08, // >
+  0x02,0x01,0x51,0x09,0x06, // ?
+  0x32,0x49,0x79,0x41,0x3E, // @
+  0x7E,0x11,0x11,0x11,0x7E, // A
+  0x7F,0x49,0x49,0x49,0x36, // B
+  0x3E,0x41,0x41,0x41,0x22, // C
+  0x7F,0x41,0x41,0x22,0x1C, // D
+  0x7F,0x49,0x49,0x49,0x41, // E
+  0x7F,0x09,0x09,0x09,0x01, // F
+  0x3E,0x41,0x49,0x49,0x7A, // G
+  0x7F,0x08,0x08,0x08,0x7F, // H
+  0x00,0x41,0x7F,0x41,0x00, // I
+  0x20,0x40,0x41,0x3F,0x01, // J
+  0x7F,0x08,0x14,0x22,0x41, // K
+  0x7F,0x40,0x40,0x40,0x40, // L
+  0x7F,0x02,0x0C,0x02,0x7F, // M
+  0x7F,0x04,0x08,0x10,0x7F, // N
+  0x3E,0x41,0x41,0x41,0x3E, // O
+  0x7F,0x09,0x09,0x09,0x06, // P
+  0x3E,0x41,0x51,0x21,0x5E, // Q
+  0x7F,0x09,0x19,0x29,0x46, // R
+  0x46,0x49,0x49,0x49,0x31, // S
+  0x01,0x01,0x7F,0x01,0x01, // T
+  0x3F,0x40,0x40,0x40,0x3F, // U
+  0x1F,0x20,0x40,0x20,0x1F, // V
+  0x3F,0x40,0x38,0x40,0x3F, // W
+  0x63,0x14,0x08,0x14,0x63, // X
+  0x07,0x08,0x70,0x08,0x07, // Y
+  0x61,0x51,0x49,0x45,0x43, // Z
+  0x00,0x7F,0x41,0x41,0x00, // [
+  0x02,0x04,0x08,0x10,0x20, // backslash
+  0x00,0x41,0x41,0x7F,0x00, // ]
+  0x04,0x02,0x01,0x02,0x04, // ^
+  0x40,0x40,0x40,0x40,0x40, // _
+  0x00,0x01,0x02,0x04,0x00, // `
+  0x20,0x54,0x54,0x54,0x78, // a
+  0x7F,0x48,0x44,0x44,0x38, // b
+  0x38,0x44,0x44,0x44,0x20, // c
+  0x38,0x44,0x44,0x48,0x7F, // d
+  0x38,0x54,0x54,0x54,0x18, // e
+  0x08,0x7E,0x09,0x01,0x02, // f
+  0x0C,0x52,0x52,0x52,0x3E, // g
+  0x7F,0x08,0x04,0x04,0x78, // h
+  0x00,0x44,0x7D,0x40,0x00, // i
+  0x20,0x40,0x44,0x3D,0x00, // j
+  0x7F,0x10,0x28,0x44,0x00, // k
+  0x00,0x41,0x7F,0x40,0x00, // l
+  0x7C,0x04,0x18,0x04,0x78, // m
+  0x7C,0x08,0x04,0x04,0x78, // n
+  0x38,0x44,0x44,0x44,0x38, // o
+  0x7C,0x14,0x14,0x14,0x08, // p
+  0x08,0x14,0x14,0x18,0x7C, // q
+  0x7C,0x08,0x04,0x04,0x08, // r
+  0x48,0x54,0x54,0x54,0x20, // s
+  0x04,0x3F,0x44,0x40,0x20, // t
+  0x3C,0x40,0x40,0x20,0x7C, // u
+  0x1C,0x20,0x40,0x20,0x1C, // v
+  0x3C,0x40,0x30,0x40,0x3C, // w
+  0x44,0x28,0x10,0x28,0x44, // x
+  0x0C,0x50,0x50,0x50,0x3C, // y
+  0x44,0x64,0x54,0x4C,0x44, // z
+  0x00,0x08,0x36,0x41,0x00, // {
+  0x00,0x00,0x7F,0x00,0x00, // |
+  0x00,0x41,0x36,0x08,0x00, // }
+  0x10,0x08,0x08,0x10,0x08, // ~
+]);
+
+/* ══════════════════════════════════════════════════
+   Display configurations
+   ══════════════════════════════════════════════════ */
+const DISP = {
+  '16x2':   { cols:16, rows:2,  label:'16×2 Char' },
+  '20x4':   { cols:20, rows:4,  label:'20×4 Char' },
+  '128x64': { cols:21, rows:8,  label:'128×64 GLCD', glcd:true },
 };
 
-/* ── Geometry ─────────────────────────────────────────────────────── */
-const T=9, G=4;     // thickness, corner gap
-const DW=68;         // digit slot width (includes dp space)
-const DH=100;        // digit slot height
-const PX=10, PY=10; // screen padding
-
-// Horizontal segment: x0→x1 at y0
-function hp(x0,x1,y0){
-  const y1=y0+T, my=y0+T/2;
-  return `${x0+G},${y0} ${x1-G},${y0} ${x1},${my} ${x1-G},${y1} ${x0+G},${y1} ${x0},${my}`;
-}
-// Vertical segment: x0, y0→y1
-function vp(x0,y0,y1){
-  const x1=x0+T, mx=x0+T/2;
-  return `${x0},${y0+G} ${mx},${y0} ${x1},${y0+G} ${x1},${y1-G} ${mx},${y1} ${x0},${y1-G}`;
-}
-
-// [bit, points] for each of the 7 segments
-const SEGS=[
-  [0, hp(11,49, 3)],   // a top
-  [1, vp(49,11,44)],   // b top-right
-  [2, vp(49,57,90)],   // c bot-right
-  [3, hp(11,49,90)],   // d bottom
-  [4, vp( 2,57,90)],   // e bot-left
-  [5, vp( 2,11,44)],   // f top-left
-  [6, hp(11,49,47)],   // g middle
-];
-
-/* ── State ────────────────────────────────────────────────────────── */
-const S = {
-  text:'HELLO WORLD', digits:12, theme:'green',
-  scale:1.4, glow:true, ghost:true, bright:100,
-  align:'right', anim:'none', speed:800,
+/* ══════════════════════════════════════════════════
+   App state
+   ══════════════════════════════════════════════════ */
+const APP = {
+  dt: '16x2',
+  activeScreen: 0,
+  screens: [],
+  cgram: Array(8).fill(null),
+  cursorCol: 0, cursorRow: 0,
+  editingCgramSlot: -1,
+  codeOpen: true,
 };
 
-let _scroll=null;
-
-/* ── SVG builder ──────────────────────────────────────────────────── */
-function digitSVG(ch, dx){
-  if(ch===':'){
-    return `<g transform="translate(${dx},0)">
-      <circle class="seg-on dp" cx="30" cy="28" r="5" filter="url(#fg)"/>
-      <circle class="seg-on dp" cx="30" cy="68" r="5" filter="url(#fg)"/>
-    </g>`;
-  }
-  const code = SM[ch.toUpperCase()] ?? 0;
-  let g = `<g transform="translate(${dx},0)">`;
-  for(const [bit,pts] of SEGS){
-    const on = !!(code & (1<<bit));
-    if(on)       g+=`<polygon class="seg-on" points="${pts}" filter="url(#fg)"/>`;
-    else if(S.ghost) g+=`<polygon class="seg-off" points="${pts}"/>`;
-  }
-  const dpOn = !!(code & 0x80);
-  if(dpOn)        g+=`<circle class="seg-on dp" cx="62" cy="94" r="4" filter="url(#fg)"/>`;
-  else if(S.ghost) g+=`<circle class="seg-off dp" cx="62" cy="94" r="4"/>`;
-  return g+'</g>';
+function makeScreen(name, cols, rows) {
+  return {
+    name,
+    cells: Array.from({length: rows}, () => Array(cols).fill(' ')),
+    placeholders: [],
+  };
 }
 
-function filterSVG(){
-  if(!S.glow) return '<filter id="fg"><feIdentity/></filter>';
-  return `<filter id="fg" x="-60%" y="-60%" width="220%" height="220%">
-    <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="b"/>
-    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-  </filter>`;
+function initDefaultScreen() {
+  const s = makeScreen('HomeScreen', 16, 2);
+  // "temp: "
+  'temp: '.split('').forEach((c, i) => s.cells[0][i] = c);
+  // CGRAM[0] at col 14, 'C' at col 15
+  s.cells[0][14] = '\x00';
+  s.cells[0][15] = 'C';
+  // "Hum:  "
+  'Hum:  '.split('').forEach((c, i) => s.cells[1][i] = c);
+  // '%' at col 15
+  s.cells[1][15] = '%';
+  // Placeholders
+  s.placeholders.push({ name:'temp', col:6, row:0, width:4 });
+  s.placeholders.push({ name:'hum',  col:6, row:1, width:4 });
+  // CGRAM
+  APP.cgram[0] = [0x0E,0x11,0x0E,0x00,0x00,0x00,0x00,0x00]; // degree
+  APP.cgram[1] = [0x04,0x0E,0x1F,0x1F,0x1F,0x0E,0x00,0x00]; // drop
+  APP.screens.push(s);
 }
 
-function getChars(overrideText){
-  let text = overrideText ?? S.text;
-  const n = S.digits;
-  if(text.length < n){
-    const pad = ' '.repeat(n - text.length);
-    if(S.align==='right')  text = pad + text;
-    else if(S.align==='center'){
-      const l=Math.floor((n-text.length)/2);
-      text = ' '.repeat(l)+text+' '.repeat(n-text.length-l);
-    } else text += pad;
-  } else if(text.length > n){
-    text = S.align==='right' ? text.slice(-n) : text.slice(0,n);
-  }
-  return text.split('');
+/* ══════════════════════════════════════════════════
+   Canvas rendering
+   ══════════════════════════════════════════════════ */
+const PS = 3, PG = 1;                          // pixel size, pixel gap
+const CW = 5*(PS+PG) + 4;                      // cell width  = 24
+const CH = 8*(PS+PG) + 6;                      // cell height = 38
+const PAD_X = 12, PAD_Y = 10;
+
+function getConfig() { return DISP[APP.dt]; }
+function getScreen() { return APP.screens[APP.activeScreen]; }
+
+function getPlaceholderAt(col, row) {
+  return getScreen().placeholders.find(
+    p => p.row === row && col >= p.col && col < p.col + p.width
+  );
 }
 
-function buildSVG(chars){
-  const W = S.digits*DW + PX*2;
-  const H = DH + PY*2;
-  const svg = document.getElementById('lcd');
-  svg.setAttribute('width',  W*S.scale);
-  svg.setAttribute('height', H*S.scale);
-  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
-
-  let digits='';
-  for(let i=0;i<S.digits;i++){
-    digits += digitSVG(chars[i]??'', PX + i*DW);
-  }
-  svg.innerHTML=`<defs>${filterSVG()}</defs><g transform="translate(0,${PY})">${digits}</g>`;
-  svg.style.filter=`brightness(${S.bright/100})`;
-}
-
-function render(overrideText){
-  buildSVG(getChars(overrideText));
-}
-
-/* ── Animation ────────────────────────────────────────────────────── */
-function stopAnim(){
-  if(_scroll){ clearInterval(_scroll); _scroll=null; }
-  document.getElementById('lcd').classList.remove('blinking');
-  document.getElementById('lcd').style.removeProperty('--blink-dur');
-}
-
-function startAnim(){
-  stopAnim();
-  const svg=document.getElementById('lcd');
-  if(S.anim==='blink'){
-    svg.style.setProperty('--blink-dur', S.speed+'ms');
-    svg.classList.add('blinking');
-  } else if(S.anim==='scroll'){
-    const full = S.text;
-    const pad = ' '.repeat(S.digits);
-    const loop = pad + full + pad;
-    let i=0;
-    _scroll=setInterval(()=>{
-      const slice=(loop+loop).slice(i, i+S.digits);
-      render(slice);
-      i=(i+1)%(full.length+S.digits);
-    }, S.speed/5);
+function drawPixelChar(ctx, code, cx, cy, onCol, offCol) {
+  if (code >= 0 && code <= 7 && APP.cgram[code]) {
+    // CGRAM: row-major, bit4=leftmost
+    const g = APP.cgram[code];
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 5; c++) {
+        const on = (g[r] >> (4-c)) & 1;
+        ctx.fillStyle = on ? onCol : offCol;
+        ctx.fillRect(cx + 2 + c*(PS+PG), cy + 3 + r*(PS+PG), PS, PS);
+      }
+    }
+  } else if (code >= 0x20 && code <= 0x7E) {
+    // ASCII: column-major, bit0=top
+    const fi = (code - 0x20) * 5;
+    for (let c = 0; c < 5; c++) {
+      const col = F[fi+c];
+      for (let r = 0; r < 8; r++) {
+        const on = (col >> r) & 1;
+        ctx.fillStyle = on ? onCol : offCol;
+        ctx.fillRect(cx + 2 + c*(PS+PG), cy + 3 + r*(PS+PG), PS, PS);
+      }
+    }
   }
 }
 
-function update(){
-  stopAnim();
-  render();
-  updateCount();
-  if(S.anim!=='none') startAnim();
+function renderLCD() {
+  const canvas = document.getElementById('lcd-canvas');
+  const cfg = getConfig();
+  const scr = getScreen();
+  const W = cfg.cols * CW + PAD_X * 2;
+  const H = cfg.rows * CH + PAD_Y * 2;
+  const DPR = window.devicePixelRatio || 1;
+  canvas.width = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(DPR, DPR);
+
+  // Screen background
+  ctx.fillStyle = '#0a1a0a';
+  ctx.fillRect(0, 0, W, H);
+
+  for (let r = 0; r < cfg.rows; r++) {
+    for (let c = 0; c < cfg.cols; c++) {
+      const cx = PAD_X + c * CW;
+      const cy = PAD_Y + r * CH;
+      const ph = getPlaceholderAt(c, r);
+      const isCursor = c === APP.cursorCol && r === APP.cursorRow;
+
+      // Cell background
+      if (isCursor) {
+        ctx.fillStyle = '#3a9a3a';
+        ctx.fillRect(cx, cy, CW-1, CH-1);
+      } else if (ph) {
+        // Placeholder: orange tint, extent-aware
+        const isStart = c === ph.col;
+        const isEnd   = c === ph.col + ph.width - 1;
+        ctx.fillStyle = 'rgba(180,80,0,0.35)';
+        ctx.fillRect(cx, cy, CW-1, CH-1);
+        if (isStart) {
+          ctx.fillStyle = 'rgba(220,110,0,0.5)';
+          ctx.fillRect(cx, cy, 2, CH-1);
+        }
+        if (isEnd) {
+          ctx.fillStyle = 'rgba(220,110,0,0.5)';
+          ctx.fillRect(cx+CW-3, cy, 2, CH-1);
+        }
+      }
+
+      // Character
+      const charVal = scr.cells[r]?.[c] ?? ' ';
+      const code = charVal.charCodeAt(0);
+      let onCol, offCol;
+      if (isCursor) {
+        onCol = '#0a1a0a'; offCol = 'rgba(10,26,10,0.2)';
+      } else if (ph) {
+        onCol = '#fb923c'; offCol = 'rgba(180,80,0,0.08)';
+      } else {
+        onCol = '#4ade80'; offCol = 'rgba(74,222,128,0.06)';
+      }
+      drawPixelChar(ctx, code, cx, cy, onCol, offCol);
+
+      // Placeholder label overlay (first cell: show "[")
+      if (ph && c === ph.col) {
+        const label = '[' + ph.name;
+        ctx.font = '7px monospace';
+        ctx.fillStyle = 'rgba(251,146,60,0.9)';
+        // Draw tiny label in top-left of first cell
+        ctx.fillText(label.slice(0,4), cx+1, cy+7);
+      }
+    }
+  }
+
+  updateRowLabels(cfg);
+  updateColMarkers(cfg);
 }
 
-function updateCount(){
-  const n=Math.min(S.text.length, S.digits);
-  document.getElementById('ccount').textContent=`${S.text.length}/${S.digits}`;
+function updateRowLabels(cfg) {
+  const el = document.getElementById('rowLabels');
+  el.innerHTML = '';
+  for (let r = 0; r < cfg.rows; r++) {
+    const d = document.createElement('div');
+    d.className = 'lcd-row-label';
+    d.style.height = CH + 'px';
+    d.textContent = 'R' + r;
+    el.appendChild(d);
+  }
 }
 
-/* ── Controls wiring ──────────────────────────────────────────────── */
-document.getElementById('txt').addEventListener('input',e=>{
-  S.text=e.target.value; update();
+function updateColMarkers(cfg) {
+  const el = document.getElementById('colMarkers');
+  el.style.paddingLeft = (32 + PAD_X) + 'px';
+  el.style.position = 'relative';
+  el.style.height = '14px';
+  el.innerHTML = '';
+  [0, 5, 10, 15, 20].forEach(n => {
+    if (n >= cfg.cols) return;
+    const d = document.createElement('div');
+    d.className = 'lcd-col-marker';
+    d.style.left = (n * CW) + 'px';
+    d.textContent = n;
+    el.appendChild(d);
+  });
+}
+
+/* ══════════════════════════════════════════════════
+   CGRAM thumbnails
+   ══════════════════════════════════════════════════ */
+function renderCgramGrid() {
+  const grid = document.getElementById('cgramGrid');
+  grid.innerHTML = '';
+  let used = 0;
+  APP.cgram.forEach((glyph, i) => {
+    if (glyph) used++;
+    const slot = document.createElement('div');
+    slot.className = 'cgram-slot' + (glyph ? ' used' : '') +
+                     (APP.editingCgramSlot === i ? ' editing' : '');
+    slot.title = glyph ? `Slot ${i} — double-click to edit` : `Slot ${i} — empty`;
+
+    const c = document.createElement('canvas');
+    c.className = 'cgram-canvas';
+    const PX = 4, sz = 5*PX + 4, ht = 8*PX + 4;
+    c.width = sz; c.height = ht;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#0a150a';
+    ctx.fillRect(0, 0, sz, ht);
+    if (glyph) {
+      for (let r = 0; r < 8; r++) {
+        for (let col = 0; col < 5; col++) {
+          const on = (glyph[r] >> (4-col)) & 1;
+          ctx.fillStyle = on ? '#4ade80' : 'rgba(74,222,128,0.06)';
+          ctx.fillRect(2 + col*PX, 2 + r*PX, PX-1, PX-1);
+        }
+      }
+    } else {
+      ctx.fillStyle = '#1a2a1a';
+      ctx.fillRect(2, 2, sz-4, ht-4);
+    }
+
+    const idx = document.createElement('div');
+    idx.className = 'cgram-idx';
+    idx.textContent = i;
+    slot.appendChild(c);
+    slot.appendChild(idx);
+    slot.addEventListener('dblclick', () => openCgramEditor(i));
+    slot.addEventListener('click', () => insertCgramChar(i));
+    grid.appendChild(slot);
+  });
+  document.getElementById('cgramCount').textContent = used + '/8';
+  document.getElementById('cgramBadge').textContent = used + '/8 CGRAM';
+}
+
+function openCgramEditor(slot) {
+  APP.editingCgramSlot = slot;
+  if (!APP.cgram[slot]) APP.cgram[slot] = Array(8).fill(0);
+  const ed = document.getElementById('cgramEditor');
+  ed.classList.add('open');
+  document.getElementById('cgramEditorTitle').textContent = `Editing slot ${slot}`;
+  buildCgramPixelGrid(slot);
+  renderCgramGrid();
+}
+
+function buildCgramPixelGrid(slot) {
+  const grid = document.getElementById('cgramPixelGrid');
+  grid.innerHTML = '';
+  const glyph = APP.cgram[slot];
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 5; c++) {
+      const px = document.createElement('div');
+      px.className = 'cgram-px' + ((glyph[r] >> (4-c)) & 1 ? ' on' : '');
+      px.addEventListener('click', () => {
+        const bit = 1 << (4-c);
+        APP.cgram[slot][r] ^= bit;
+        px.classList.toggle('on', !!(APP.cgram[slot][r] & bit));
+        renderCgramGrid();
+        renderLCD();
+        regen();
+      });
+      grid.appendChild(px);
+    }
+  }
+}
+
+function insertCgramChar(slot) {
+  const scr = getScreen();
+  scr.cells[APP.cursorRow][APP.cursorCol] = String.fromCharCode(slot);
+  advanceCursor();
+  renderLCD();
+  regen();
+}
+
+document.getElementById('cgramClear').addEventListener('click', () => {
+  if (APP.editingCgramSlot < 0) return;
+  APP.cgram[APP.editingCgramSlot] = Array(8).fill(0);
+  buildCgramPixelGrid(APP.editingCgramSlot);
+  renderCgramGrid(); renderLCD(); regen();
+});
+document.getElementById('cgramDone').addEventListener('click', () => {
+  APP.editingCgramSlot = -1;
+  document.getElementById('cgramEditor').classList.remove('open');
+  renderCgramGrid();
 });
 
-document.querySelectorAll('[data-t]').forEach(b=>{
-  b.addEventListener('click',()=>{
-    document.querySelectorAll('[data-t]').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on');
-    S.theme=b.dataset.t;
-    const dev=document.getElementById('device');
-    dev.className='device t-'+S.theme;
-    update();
+/* ══════════════════════════════════════════════════
+   Keyboard + mouse
+   ══════════════════════════════════════════════════ */
+const canvas = document.getElementById('lcd-canvas');
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  const cfg = getConfig();
+  const col = Math.floor((x - PAD_X) / CW);
+  const row = Math.floor((y - PAD_Y) / CH);
+  if (col >= 0 && col < cfg.cols && row >= 0 && row < cfg.rows) {
+    APP.cursorCol = col; APP.cursorRow = row;
+    canvas.focus();
+    renderLCD(); updateCursorUI();
+  }
+});
+
+canvas.addEventListener('keydown', e => {
+  const cfg = getConfig();
+  const scr = getScreen();
+  let handled = true;
+  switch(e.key) {
+    case 'ArrowRight': APP.cursorCol = Math.min(cfg.cols-1, APP.cursorCol+1); break;
+    case 'ArrowLeft':  APP.cursorCol = Math.max(0, APP.cursorCol-1); break;
+    case 'ArrowDown':  APP.cursorRow = Math.min(cfg.rows-1, APP.cursorRow+1); break;
+    case 'ArrowUp':    APP.cursorRow = Math.max(0, APP.cursorRow-1); break;
+    case 'Backspace':
+      scr.cells[APP.cursorRow][APP.cursorCol] = ' ';
+      APP.cursorCol = Math.max(0, APP.cursorCol-1);
+      regen(); break;
+    case 'Delete':
+      scr.cells[APP.cursorRow][APP.cursorCol] = ' ';
+      regen(); break;
+    case 'Home': APP.cursorCol = 0; break;
+    case 'End':  APP.cursorCol = cfg.cols-1; break;
+    case 'Enter': APP.cursorRow = Math.min(cfg.rows-1, APP.cursorRow+1); APP.cursorCol=0; break;
+    case 'Tab':
+      e.preventDefault();
+      APP.cursorCol = Math.min(cfg.cols-1, APP.cursorCol+1); break;
+    default:
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        scr.cells[APP.cursorRow][APP.cursorCol] = e.key;
+        advanceCursor();
+        regen();
+      } else { handled = false; }
+  }
+  if (handled) e.preventDefault();
+  renderLCD(); updateCursorUI();
+});
+
+function advanceCursor() {
+  const cfg = getConfig();
+  APP.cursorCol = Math.min(cfg.cols-1, APP.cursorCol+1);
+}
+
+function updateCursorUI() {
+  document.getElementById('curCol').textContent = APP.cursorCol;
+  document.getElementById('curRow').textContent = APP.cursorRow;
+  document.getElementById('cursorPosLabel').textContent = `${APP.cursorCol}, ${APP.cursorRow}`;
+}
+
+/* ══════════════════════════════════════════════════
+   Placeholder insertion
+   ══════════════════════════════════════════════════ */
+document.getElementById('insertPhBtn').addEventListener('click', () => {
+  document.getElementById('ndPos').textContent = `${APP.cursorCol}, ${APP.cursorRow}`;
+  document.getElementById('ndName').value = '';
+  document.getElementById('ndWidth').value = '4';
+  document.getElementById('nameDialog').classList.add('open');
+  setTimeout(() => document.getElementById('ndName').focus(), 50);
+});
+document.getElementById('ndCancel').addEventListener('click', () => {
+  document.getElementById('nameDialog').classList.remove('open');
+});
+document.getElementById('nameDialog').addEventListener('click', e => {
+  if (e.target === document.getElementById('nameDialog'))
+    document.getElementById('nameDialog').classList.remove('open');
+});
+document.getElementById('ndName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('ndConfirm').click();
+  if (e.key === 'Escape') document.getElementById('ndCancel').click();
+});
+document.getElementById('ndConfirm').addEventListener('click', () => {
+  const name = document.getElementById('ndName').value.trim().replace(/[^a-zA-Z0-9_]/g,'_');
+  const width = Math.max(1, Math.min(16, parseInt(document.getElementById('ndWidth').value)||4));
+  if (!name) return;
+  const scr = getScreen();
+  const cfg = getConfig();
+  // Remove overlapping placeholders
+  scr.placeholders = scr.placeholders.filter(
+    p => !(p.row === APP.cursorRow && p.col+p.width > APP.cursorCol && p.col < APP.cursorCol+width)
+  );
+  scr.placeholders.push({ name, col: APP.cursorCol, row: APP.cursorRow, width });
+  document.getElementById('nameDialog').classList.remove('open');
+  renderLCD(); renderFields(); regen();
+});
+
+/* ══════════════════════════════════════════════════
+   Fields panel
+   ══════════════════════════════════════════════════ */
+function renderFields() {
+  const scr = getScreen();
+  const el = document.getElementById('fieldsList');
+  const cnt = document.getElementById('fieldCount');
+  const badge = document.getElementById('fieldsBadge');
+  const phs = scr.placeholders;
+  cnt.textContent = phs.length;
+  badge.textContent = phs.length + ' field' + (phs.length===1?'':'s');
+  if (!phs.length) { el.innerHTML = '<div class="no-fields">No placeholders yet</div>'; return; }
+  el.innerHTML = phs.map((p,i) => `
+    <div class="field-item">
+      <div class="field-dot"></div>
+      <div class="field-info">
+        <div class="field-name">${p.name}</div>
+        <div class="field-meta">col ${p.col} · row ${p.row} · w ${p.width}</div>
+      </div>
+      <button class="field-del" data-i="${i}" title="Remove">✕</button>
+    </div>`).join('');
+  el.querySelectorAll('.field-del').forEach(b => b.addEventListener('click', () => {
+    scr.placeholders.splice(+b.dataset.i, 1);
+    renderFields(); renderLCD(); regen();
+  }));
+}
+
+/* ══════════════════════════════════════════════════
+   Screen management
+   ══════════════════════════════════════════════════ */
+function renderScreenList() {
+  const el = document.getElementById('screenList');
+  el.innerHTML = '';
+  APP.screens.forEach((s, i) => {
+    const item = document.createElement('div');
+    item.className = 'screen-item' + (i===APP.activeScreen?' active':'');
+    item.innerHTML = `
+      <div class="screen-icon${i===APP.activeScreen?' active-icon':''}"></div>
+      <div class="screen-name${i===APP.activeScreen?' active-name':''}">${s.name}</div>
+      <div class="screen-actions">
+        <button class="screen-act-btn" data-edit="${i}" title="Rename">✎</button>
+        <button class="screen-act-btn" data-del="${i}" title="Delete">⊗</button>
+      </div>`;
+    item.addEventListener('click', () => { APP.activeScreen = i; switchScreen(); });
+    el.appendChild(item);
+  });
+  el.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const n = prompt('Rename screen:', APP.screens[+b.dataset.edit].name);
+    if (n?.trim()) { APP.screens[+b.dataset.edit].name = n.trim(); renderScreenList(); regen(); updateBreadcrumb(); }
+  }));
+  el.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const i = +b.dataset.del;
+    if (APP.screens.length < 2) return alert('Must have at least one screen.');
+    APP.screens.splice(i, 1);
+    if (APP.activeScreen >= APP.screens.length) APP.activeScreen = APP.screens.length - 1;
+    switchScreen();
+  }));
+  document.getElementById('screenCount').textContent = APP.screens.length + ' screen' + (APP.screens.length===1?'':'s');
+}
+
+document.getElementById('newScreenBtn').addEventListener('click', () => {
+  const n = prompt('Screen name:', 'Screen' + (APP.screens.length+1));
+  if (!n?.trim()) return;
+  const cfg = getConfig();
+  APP.screens.push(makeScreen(n.trim(), cfg.cols, cfg.rows));
+  APP.activeScreen = APP.screens.length - 1;
+  switchScreen();
+});
+
+function switchScreen() {
+  APP.cursorCol = 0; APP.cursorRow = 0;
+  renderScreenList(); renderLCD(); renderFields(); renderCgramGrid();
+  regen(); updateBreadcrumb(); updateCursorUI();
+}
+
+function updateBreadcrumb() {
+  document.getElementById('breadScreen').textContent = getScreen().name;
+  document.getElementById('breadType').textContent = getConfig().label;
+  document.getElementById('dtBadge').textContent = APP.dt;
+}
+
+/* ══════════════════════════════════════════════════
+   Display type switch
+   ══════════════════════════════════════════════════ */
+document.querySelectorAll('[data-dt]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-dt]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    APP.dt = btn.dataset.dt;
+    // Resize existing screen's cell arrays
+    const cfg = getConfig();
+    APP.screens.forEach(s => {
+      while (s.cells.length < cfg.rows) s.cells.push(Array(cfg.cols).fill(' '));
+      s.cells = s.cells.slice(0, cfg.rows).map(row => {
+        while (row.length < cfg.cols) row.push(' ');
+        return row.slice(0, cfg.cols);
+      });
+    });
+    APP.cursorCol = Math.min(APP.cursorCol, cfg.cols-1);
+    APP.cursorRow = Math.min(APP.cursorRow, cfg.rows-1);
+    updateBreadcrumb(); renderLCD(); regen();
   });
 });
 
-document.getElementById('digits').addEventListener('input',e=>{
-  S.digits=+e.target.value;
-  document.getElementById('digitsV').textContent=S.digits;
-  update();
-});
-
-document.getElementById('scale').addEventListener('input',e=>{
-  S.scale=+e.target.value;
-  document.getElementById('scaleV').textContent=S.scale.toFixed(1)+'×';
-  update();
-});
-
-document.querySelectorAll('[data-al]').forEach(b=>{
-  b.addEventListener('click',()=>{
-    document.querySelectorAll('[data-al]').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on');
-    S.align=b.dataset.al; update();
+/* ══════════════════════════════════════════════════
+   Special characters picker
+   ══════════════════════════════════════════════════ */
+const SPEC_CHARS = '←→↑↓°±×÷√∞αβγδεζθλμπσΩ♪♫■□▪▫▲▼◆◇★☆●○✓✗';
+const specGrid = document.getElementById('specChars');
+SPEC_CHARS.split('').forEach(ch => {
+  const el = document.createElement('div');
+  el.className = 'spec-char';
+  el.textContent = ch;
+  el.title = 'U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4,'0');
+  el.addEventListener('click', () => {
+    const scr = getScreen();
+    scr.cells[APP.cursorRow][APP.cursorCol] = ch;
+    advanceCursor(); renderLCD(); regen();
+    document.getElementById('specPicker').classList.remove('open');
   });
+  specGrid.appendChild(el);
 });
-
-document.getElementById('glow').addEventListener('change',e=>{S.glow=e.target.checked;update()});
-document.getElementById('ghost').addEventListener('change',e=>{S.ghost=e.target.checked;update()});
-
-document.getElementById('bright').addEventListener('input',e=>{
-  S.bright=+e.target.value;
-  document.getElementById('brightV').textContent=S.bright+'%';
-  document.getElementById('lcd').style.filter=`brightness(${S.bright/100})`;
+document.getElementById('specialBtn').addEventListener('click', e => {
+  const p = document.getElementById('specPicker');
+  const rect = e.currentTarget.getBoundingClientRect();
+  p.style.top = (rect.bottom + 6) + 'px';
+  p.style.left = rect.left + 'px';
+  p.classList.toggle('open');
+  e.stopPropagation();
 });
+document.addEventListener('click', () => document.getElementById('specPicker').classList.remove('open'));
 
-document.querySelectorAll('[data-an]').forEach(b=>{
-  b.addEventListener('click',()=>{
-    document.querySelectorAll('[data-an]').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on');
-    S.anim=b.dataset.an;
-    document.getElementById('speedRow').style.display=S.anim!=='none'?'flex':'none';
-    update();
+/* ══════════════════════════════════════════════════
+   C Header generation + syntax highlighting
+   ══════════════════════════════════════════════════ */
+function generateHeader() {
+  const lines = [];
+  const push = (...args) => lines.push(...args);
+  push(
+    '#include <stdint.h>',
+    '#ifdef __AVR__',
+    '  #include <avr/pgmspace.h>',
+    '#else',
+    '  #define PROGMEM',
+    '  #define pgm_read_byte(p) (*(const uint8_t*)(p))',
+    '#endif',
+    ''
+  );
+  const usedCgram = APP.cgram.map((g,i)=>g?i:-1).filter(i=>i>=0);
+  if (usedCgram.length) {
+    push('/* ── Custom Characters (CGRAM) ──────────────────────────────────── */');
+    usedCgram.forEach(i => {
+      const g = APP.cgram[i];
+      const bytes = g.map(b=>'0x'+b.toString(16).padStart(2,'0')).join(', ');
+      push(`static const uint8_t PROGMEM cgram_${i}[8] = { ${bytes} };`);
+    });
+    push('');
+  }
+  APP.screens.forEach(s => {
+    const nameUp = s.name.replace(/[^a-zA-Z0-9]/g,'_').toUpperCase();
+    const nameLo = s.name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+    const cfg = getConfig();
+    push(`/* ── Screen: ${s.name} (${APP.dt}) ─────────────────────────────── */`);
+    for (let r = 0; r < cfg.rows; r++) {
+      const row = (s.cells[r]||[]).map((c,ci) => {
+        if (getScreen()===s && s.placeholders.find(p=>p.row===r&&ci>=p.col&&ci<p.col+p.width)) return ' ';
+        return c === '\x00' ? '\\x00' : (c.charCodeAt(0)<32 ? '?': c);
+      }).join('').replace(/\s+$/,'');
+      if (row) push(`static const char PROGMEM ${nameLo}_r${r}[] = "${row}";`);
+    }
+    if (s.placeholders.length) {
+      push('');
+      push('/* Dynamic field positions */');
+      push('typedef struct { uint8_t col; uint8_t row; uint8_t width; } lcd_field_t;');
+      s.placeholders.forEach(p => {
+        push(`static const lcd_field_t PROGMEM ${nameUp}_F_${p.name.toUpperCase()} = { ${p.col}, ${p.row}, ${p.width} };`);
+      });
+    }
+    if (usedCgram.length) {
+      push('');
+      push(`/* Load custom chars for ${s.name} */`);
+      push(`void ${nameLo}_load_cgram(void) {`);
+      usedCgram.forEach(i => {
+        push(`  lcd_create_char(${i}, cgram_${i});`);
+      });
+      push('}');
+    }
+    push('');
   });
-});
+  return lines;
+}
 
-document.getElementById('speed').addEventListener('input',e=>{
-  S.speed=+e.target.value;
-  const v=S.speed>=1000?(S.speed/1000).toFixed(1)+'s':(S.speed+'ms');
-  document.getElementById('speedV').textContent=v;
-  if(S.anim!=='none') startAnim();
-});
-
-/* ── Export ───────────────────────────────────────────────────────── */
-function svgString(){
-  const svg=document.getElementById('lcd');
-  const dev=document.getElementById('device');
-  const cs=getComputedStyle(dev);
-  const on=cs.getPropertyValue('--lcd-on').trim();
-  const off=cs.getPropertyValue('--lcd-off').trim();
-  const ns='xmlns="http://www.w3.org/2000/svg"';
-  let s=new XMLSerializer().serializeToString(svg);
-  // Ensure xml namespace
-  if(!s.includes(ns)) s=s.replace('<svg','<svg '+ns);
-  // Inline colour classes
-  s=s.replace(/class="seg-on[^"]*"/g,`fill="${on}"`);
-  s=s.replace(/class="seg-off[^"]*"/g,`fill="${off}"`);
+function syntaxHL(line) {
+  let s = line
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Comments
+  if (/^\/\*/.test(s.trim()) || /^\/\//.test(s.trim()))
+    return `<span class="c-cm">${s}</span>`;
+  // Preprocessor
+  s = s.replace(/(#\w+)/g, '<span class="c-pp">$1</span>');
+  // Keywords
+  s = s.replace(/\b(static|const|typedef|struct|void|return|if|else)\b/g,
+    '<span class="c-kw">$1</span>');
+  // Types
+  s = s.replace(/\b(uint8_t|char|lcd_field_t|int)\b/g,
+    '<span class="c-ty">$1</span>');
+  // PROGMEM
+  s = s.replace(/\bPROGMEM\b/g, '<span class="c-fn">PROGMEM</span>');
+  // Strings
+  s = s.replace(/"([^"]*)"/g, '<span class="c-st">"$1"</span>');
+  // Numbers
+  s = s.replace(/\b(0x[0-9a-fA-F]+|\d+)\b/g, '<span class="c-nu">$1</span>');
   return s;
 }
 
-document.getElementById('dlSvg').addEventListener('click',()=>{
-  const b=new Blob([svgString()],{type:'image/svg+xml'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(b); a.download='lcd-display.svg'; a.click();
+function regen() {
+  const lines = generateHeader();
+  const el = document.getElementById('codeBody');
+  el.innerHTML = lines.map(l =>
+    `<div class="code-line">${syntaxHL(l)||'&nbsp;'}</div>`
+  ).join('');
+  document.getElementById('lineCount').textContent = lines.length + ' lines';
+  renderFields();
+}
+
+/* ══════════════════════════════════════════════════
+   Code panel actions
+   ══════════════════════════════════════════════════ */
+let codeOpen = true;
+document.getElementById('codeToggle').addEventListener('click', () => {
+  codeOpen = !codeOpen;
+  document.getElementById('codeBody').style.display = codeOpen ? '' : 'none';
+  document.getElementById('codeToggle').textContent = codeOpen ? '▲' : '▼';
 });
 
-document.getElementById('cpSvg').addEventListener('click',()=>{
-  navigator.clipboard.writeText(svgString()).catch(()=>{});
-  const ic=document.getElementById('cpIcon');
-  ic.textContent='✓';
-  setTimeout(()=>ic.textContent='⎘',2000);
-});
+function getHeaderText() { return generateHeader().join('\n'); }
 
-document.getElementById('dlPng').addEventListener('click',()=>{
-  const svg=document.getElementById('lcd');
-  const dev=document.getElementById('device');
-  const cs=getComputedStyle(dev);
-  const bg=cs.getPropertyValue('--lcd-bg').trim();
-  const W=+svg.getAttribute('width'), H=+svg.getAttribute('height');
-  const s=svgString();
-  const blob=new Blob([s],{type:'image/svg+xml;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const img=new Image();
-  img.onload=()=>{
-    const cv=document.createElement('canvas');
-    const r=2; cv.width=W*r; cv.height=H*r;
-    const ctx=cv.getContext('2d');
-    ctx.scale(r,r);
-    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
-    ctx.drawImage(img,0,0,W,H);
-    URL.revokeObjectURL(url);
-    const a=document.createElement('a');
-    a.download='lcd-display.png'; a.href=cv.toDataURL('image/png'); a.click();
-  };
-  img.src=url;
+document.getElementById('codeCopy').addEventListener('click', () => {
+  navigator.clipboard.writeText(getHeaderText()).catch(()=>{});
+  const b = document.getElementById('codeCopy');
+  b.textContent = '✓ Copied'; setTimeout(()=>b.innerHTML='⎘ Copy',1800);
 });
-
-/* ── Page theme toggle ────────────────────────────────────────────── */
-let pageTheme='dark';
-document.getElementById('themeBtn').addEventListener('click',()=>{
-  pageTheme=pageTheme==='dark'?'light':'dark';
-  document.documentElement.dataset.theme=pageTheme;
-  document.getElementById('themeBtn').textContent=pageTheme==='dark'?'☀ Light':'☾ Dark';
+document.getElementById('copyHdrBtn').addEventListener('click', () => {
+  navigator.clipboard.writeText(getHeaderText()).catch(()=>{});
 });
+document.getElementById('codeDl').addEventListener('click',
+  document.getElementById('dlHdrBtn').onclick = () => {
+    const blob = new Blob([getHeaderText()], {type:'text/plain'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'lcd_screens.h';
+    a.click();
+  }
+);
 
-/* ── Init ─────────────────────────────────────────────────────────── */
-render();
-updateCount();
+/* ══════════════════════════════════════════════════
+   Init
+   ══════════════════════════════════════════════════ */
+initDefaultScreen();
+renderScreenList();
+renderLCD();
+renderFields();
+renderCgramGrid();
+updateBreadcrumb();
+updateCursorUI();
+regen();
+canvas.focus();
 </script>
