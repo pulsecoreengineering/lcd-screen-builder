@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect, useCallback, useState } from 'react'
 import { useStore } from '../store'
 import { DISP, CW, CH, PAD_X, PAD_Y } from '../constants'
 import { drawPixelChar } from '../font'
@@ -7,7 +7,7 @@ export default function LcdCanvas({ onInsertPlaceholder, onSpecialBtn }) {
   const { state, dispatch } = useStore()
   const { dt, activeScreen, screens, cgram, cursorCol, cursorRow } = state
   const canvasRef = useRef(null)
-  const specBtnRef = useRef(null)
+  const [isFocused, setIsFocused] = useState(false)
 
   const screen = screens[activeScreen]
   const cfg = DISP[dt]
@@ -38,7 +38,7 @@ export default function LcdCanvas({ onInsertPlaceholder, onSpecialBtn }) {
         const cx = PAD_X + c * CW
         const cy = PAD_Y + r * CH
         const ph = getPlaceholderAt(c, r)
-        const isCursor = c === cursorCol && r === cursorRow
+        const isCursor = isFocused && c === cursorCol && r === cursorRow
 
         if (isCursor) {
           ctx.fillStyle = '#3a9a3a'
@@ -84,7 +84,7 @@ export default function LcdCanvas({ onInsertPlaceholder, onSpecialBtn }) {
         }
       }
     }
-  }, [state]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state, isFocused]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { renderLCD() }, [renderLCD])
 
@@ -97,9 +97,13 @@ export default function LcdCanvas({ onInsertPlaceholder, onSpecialBtn }) {
     const row = Math.floor((y - PAD_Y) / CH)
     if (col >= 0 && col < cfg.cols && row >= 0 && row < cfg.rows) {
       dispatch({ type: 'SET_CURSOR', col, row })
+      setIsFocused(true)
       canvas.focus()
     }
   }
+
+  function handleFocus() { setIsFocused(true) }
+  function handleBlur() { setIsFocused(false) }
 
   function handleKeyDown(e) {
     let handled = true
@@ -163,13 +167,17 @@ export default function LcdCanvas({ onInsertPlaceholder, onSpecialBtn }) {
             className="lcd-canvas"
             tabIndex={0}
             onClick={handleClick}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             onKeyDown={handleKeyDown}
           />
         </div>
       </div>
       <div className="lcd-status">
-        Cursor at col <span>{cursorCol}</span>, row <span>{cursorRow}</span>
-        &nbsp;·&nbsp; Type to edit &nbsp;·&nbsp; Arrow keys to move &nbsp;·&nbsp; Click any cell
+        {isFocused
+          ? <>Cursor at col <span>{cursorCol}</span>, row <span>{cursorRow}</span>&nbsp;·&nbsp; Type to edit &nbsp;·&nbsp; Arrow keys to move</>
+          : <>Click any cell to start editing</>
+        }
       </div>
     </div>
   )
