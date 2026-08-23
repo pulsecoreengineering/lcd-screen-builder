@@ -271,6 +271,156 @@ export function generateHeader(state) {
     });
   });
 
+  // ── Navigation ────────────────────────────────────────────────────────
+  const { inputMethod = 'none', navPins = {}, transitions = [] } = state;
+  if (inputMethod !== 'none' && screens.length > 1) {
+    push('/* ---- Navigation state machine ------------------------------------------- */');
+    push('');
+
+    // Screen index #defines
+    screens.forEach((s, i) => {
+      const nameUp = s.name.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+      push(`#define SCREEN_${nameUp} ${i}`);
+    });
+    push('');
+
+    // Current screen variable + switch helper
+    push('static uint8_t _nav_cur = 0;');
+    push('');
+    push('static inline void LCD_SwitchTo(uint8_t screen) {');
+    push('    _nav_cur = screen;');
+    push('    switch (screen) {');
+    screens.forEach((s, i) => {
+      const namePascal = s.name.replace(/[^a-zA-Z0-9]/g, '_');
+      push(`        case ${i}: LCD_Show_${namePascal}_Static(); break;`);
+    });
+    push('    }');
+    push('}');
+    push('');
+
+    if (inputMethod === '2btn' || inputMethod === '4btn') {
+      // Button pin #defines
+      if (inputMethod === '2btn') {
+        push(`#define NAV_PIN_NEXT   ${navPins.up   ?? 2}`);
+        push(`#define NAV_PIN_SELECT ${navPins.select ?? 4}`);
+      } else {
+        push(`#define NAV_PIN_UP     ${navPins.up     ?? 2}`);
+        push(`#define NAV_PIN_DOWN   ${navPins.down   ?? 3}`);
+        push(`#define NAV_PIN_SELECT ${navPins.select ?? 4}`);
+        push(`#define NAV_PIN_BACK   ${navPins.back   ?? 5}`);
+      }
+      push('');
+
+      // Init — set pin modes
+      const pins = inputMethod === '2btn'
+        ? ['NAV_PIN_NEXT', 'NAV_PIN_SELECT']
+        : ['NAV_PIN_UP', 'NAV_PIN_DOWN', 'NAV_PIN_SELECT', 'NAV_PIN_BACK'];
+      push('static inline void LCD_Nav_Init(void) {');
+      pins.forEach(p => push(`    pinMode(${p}, INPUT_PULLUP);`));
+      push('}');
+      push('');
+
+      // Transition table (static const array)
+      if (transitions.length) {
+        const events = inputMethod === '2btn' ? ['next', 'select'] : ['up', 'down', 'select', 'back'];
+        push('/* Transition table: { from_screen, event_index, to_screen } */');
+        push(`static const uint8_t _nav_table[][3] = {`);
+        transitions.forEach(t => {
+          const evIdx = events.indexOf(t.event);
+          if (evIdx >= 0) push(`    { ${t.from}, ${evIdx}, ${t.to} },`);
+        });
+        push('};');
+        push(`#define _NAV_TABLE_SIZE (sizeof(_nav_table) / sizeof(_nav_table[0]))`);
+        push('');
+      }
+
+      // Update function — debounced button reading + state machine
+      push('static inline void LCD_Nav_Update(void) {');
+      push('    static uint32_t _last = 0;');
+      push('    if ((uint32_t)(millis() - _last) < 200UL) return;');
+      push('');
+      if (inputMethod === '2btn') {
+        push('    int8_t ev = -1;');
+        push('    if (!digitalRead(NAV_PIN_NEXT))   ev = 0;');
+        push('    else if (!digitalRead(NAV_PIN_SELECT)) ev = 1;');
+      } else {
+        push('    int8_t ev = -1;');
+        push('    if      (!digitalRead(NAV_PIN_UP))     ev = 0;');
+        push('    else if (!digitalRead(NAV_PIN_DOWN))   ev = 1;');
+        push('    else if (!digitalRead(NAV_PIN_SELECT)) ev = 2;');
+        push('    else if (!digitalRead(NAV_PIN_BACK))   ev = 3;');
+      }
+      push('    if (ev < 0) return;');
+      push('    _last = millis();');
+      if (transitions.length) {
+        push('    for (uint8_t i = 0; i < _NAV_TABLE_SIZE; i++) {');
+        push('        if (_nav_table[i][0] == _nav_cur && _nav_table[i][1] == (uint8_t)ev) {');
+        push('            LCD_SwitchTo(_nav_table[i][2]);');
+        push('            return;');
+        push('        }');
+        push('    }');
+      }
+      push('}');
+      push('');
+
+    } else if (inputMethod === 'rotary') {
+      push(`#define NAV_PIN_CLK ${navPins.clk ?? 2}`);
+      push(`#define NAV_PIN_DT  ${navPins.dt  ?? 3}`);
+      push(`#define NAV_PIN_SW  ${navPins.sw  ?? 4}`);
+      push('');
+      push('static inline void LCD_Nav_Init(void) {');
+      push('    pinMode(NAV_PIN_CLK, INPUT_PULLUP);');
+      push('    pinMode(NAV_PIN_DT,  INPUT_PULLUP);');
+      push('    pinMode(NAV_PIN_SW,  INPUT_PULLUP);');
+      push('}');
+      push('');
+
+      if (transitions.length) {
+        const events = ['cw', 'ccw', 'press'];
+        push('static const uint8_t _nav_table[][3] = {');
+        transitions.forEach(t => {
+          const evIdx = events.indexOf(t.event);
+          if (evIdx >= 0) push(`    { ${t.from}, ${evIdx}, ${t.to} },`);
+        });
+        push('};');
+        push('#define _NAV_TABLE_SIZE (sizeof(_nav_table) / sizeof(_nav_table[0]))');
+        push('');
+      }
+
+      push('static inline void LCD_Nav_Update(void) {');
+      push('    static uint8_t  _last_clk = HIGH;');
+      push('    static uint32_t _last_sw  = 0;');
+      push('    int8_t ev = -1;');
+      push('    uint8_t clk = digitalRead(NAV_PIN_CLK);');
+      push('    if (clk != _last_clk && clk == LOW) {');
+      push('        ev = (digitalRead(NAV_PIN_DT) != clk) ? 0 : 1; /* 0=CW 1=CCW */');
+      push('    }');
+      push('    _last_clk = clk;');
+      push('    if (ev < 0) {');
+      push('        if (!digitalRead(NAV_PIN_SW) && (uint32_t)(millis() - _last_sw) > 250UL) {');
+      push('            ev = 2; _last_sw = millis();');
+      push('        }');
+      push('    }');
+      push('    if (ev < 0) return;');
+      if (transitions.length) {
+        push('    for (uint8_t i = 0; i < _NAV_TABLE_SIZE; i++) {');
+        push('        if (_nav_table[i][0] == _nav_cur && _nav_table[i][1] == (uint8_t)ev) {');
+        push('            LCD_SwitchTo(_nav_table[i][2]);');
+        push('            return;');
+        push('        }');
+        push('    }');
+      }
+      push('}');
+      push('');
+    }
+
+    push('/* Usage:');
+    push(' *   void setup() { LCD_Init(); LCD_Nav_Init(); LCD_SwitchTo(0); }');
+    push(' *   void loop()  { LCD_Nav_Update(); }');
+    push(' * ---- */');
+    push('');
+  }
+
   push('#endif /* LCD_SCREENS_H */');
 
   return lines;

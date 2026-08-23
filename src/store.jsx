@@ -34,6 +34,9 @@ function buildInitialState() {
     codeOpen: true,
     targetLib: 'liquidcrystal_i2c',
     i2cAddr: '0x27',
+    inputMethod: 'none',
+    navPins: { up: 2, down: 3, select: 4, back: 5, clk: 2, dt: 3, sw: 4 },
+    transitions: [],
   };
 }
 
@@ -195,6 +198,23 @@ function reducer(state, action) {
 
     case 'SET_I2C_ADDR':
       return { ...state, i2cAddr: action.addr };
+
+    case 'SET_INPUT_METHOD':
+      return { ...state, inputMethod: action.method };
+
+    case 'SET_NAV_PIN':
+      return { ...state, navPins: { ...state.navPins, [action.pin]: action.value } };
+
+    case 'ADD_TRANSITION': {
+      const exists = state.transitions.some(
+        t => t.from === action.from && t.event === action.event
+      );
+      if (exists) return state;
+      return { ...state, transitions: [...state.transitions, { from: action.from, event: action.event, to: action.to }] };
+    }
+
+    case 'REMOVE_TRANSITION':
+      return { ...state, transitions: state.transitions.filter((_, i) => i !== action.index) };
 
     default:
       return state;
