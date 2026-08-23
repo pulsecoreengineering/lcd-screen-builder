@@ -11,6 +11,7 @@ import PlaceholderDialog from './components/PlaceholderDialog'
 import SpecialCharPicker from './components/SpecialCharPicker'
 import ArduinoGuide from './components/ArduinoGuide'
 import NavPanel from './components/NavPanel'
+import SimPanel from './components/SimPanel'
 
 export default function App() {
   const { state } = useStore()
@@ -23,6 +24,7 @@ export default function App() {
   const [specOpen, setSpecOpen] = useState(false)
   const [specPos, setSpecPos] = useState({ x: 0, y: 0 })
   const [guideOpen, setGuideOpen] = useState(false)
+  const [simOpen, setSimOpen] = useState(false)
   const specialBtnRef = useRef(null)
 
   const usedCgram = cgram.filter(Boolean).length
@@ -69,6 +71,9 @@ export default function App() {
               <button ref={specialBtnRef} className="special-btn" onClick={openSpecial}>
                 ⊞ Special chars
               </button>
+              <button className="sim-launch-btn" onClick={() => setSimOpen(true)}>
+                ▶ Simulate
+              </button>
               <div className="toolbar-sep" />
               <span className="badge badge-outline">{dt}</span>
               <span className="badge badge-field">
@@ -104,6 +109,7 @@ export default function App() {
       />
       <SpecialCharPicker open={specOpen} pos={specPos} onClose={() => setSpecOpen(false)} />
       <ArduinoGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
+      {simOpen && <SimPanel onClose={() => setSimOpen(false)} />}
     </div>
   )
 }
