@@ -9,6 +9,7 @@ import CgramPanel from './components/CgramPanel'
 import CodePanel from './components/CodePanel'
 import PlaceholderDialog from './components/PlaceholderDialog'
 import SpecialCharPicker from './components/SpecialCharPicker'
+import ArduinoGuide from './components/ArduinoGuide'
 
 export default function App() {
   const { state } = useStore()
@@ -17,8 +18,10 @@ export default function App() {
   const screen = screens[activeScreen]
 
   const [phOpen, setPhOpen] = useState(false)
+  const [editPh, setEditPh] = useState(null)   // { index, name, col, row, width }
   const [specOpen, setSpecOpen] = useState(false)
   const [specPos, setSpecPos] = useState({ x: 0, y: 0 })
+  const [guideOpen, setGuideOpen] = useState(false)
   const specialBtnRef = useRef(null)
 
   const usedCgram = cgram.filter(Boolean).length
@@ -31,9 +34,13 @@ export default function App() {
     e.stopPropagation()
   }
 
+  function handleEditPlaceholder(i, p) {
+    setEditPh({ index: i, ...p })
+  }
+
   return (
     <div className="app">
-      <Header />
+      <Header onGuide={() => setGuideOpen(true)} />
       <div className="body">
         <Sidebar />
         <div className="editor">
@@ -72,7 +79,7 @@ export default function App() {
           </div>
         </div>
         <div className="right-panel">
-          <FieldsPanel />
+          <FieldsPanel onEdit={handleEditPlaceholder} />
           <CgramPanel />
           <div className="panel-section">
             <div className="panel-title">
@@ -87,12 +94,14 @@ export default function App() {
         </div>
       </div>
       <CodePanel />
-      <PlaceholderDialog open={phOpen} onClose={() => setPhOpen(false)} />
-      <SpecialCharPicker
-        open={specOpen}
-        pos={specPos}
-        onClose={() => setSpecOpen(false)}
+      <PlaceholderDialog open={phOpen} onClose={() => setPhOpen(false)} editTarget={null} />
+      <PlaceholderDialog
+        open={editPh != null}
+        onClose={() => setEditPh(null)}
+        editTarget={editPh}
       />
+      <SpecialCharPicker open={specOpen} pos={specPos} onClose={() => setSpecOpen(false)} />
+      <ArduinoGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>
   )
 }

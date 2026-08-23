@@ -70,21 +70,80 @@ export function generateHeader(state) {
   return lines;
 }
 
+const KW = new Set(['static', 'const', 'typedef', 'struct', 'void', 'return', 'if', 'else']);
+const TY = new Set(['uint8_t', 'char', 'lcd_field_t', 'int']);
+
+function esc(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 export function syntaxHL(line) {
-  let s = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  if (/^\/\*/.test(s.trim()) || /^\/\//.test(s.trim()))
-    return `<span class="c-cm">${s}</span>`;
-  s = s.replace(/(#\w+)/g, '<span class="c-pp">$1</span>');
-  s = s.replace(
-    /\b(static|const|typedef|struct|void|return|if|else)\b/g,
-    '<span class="c-kw">$1</span>'
-  );
-  s = s.replace(
-    /\b(uint8_t|char|lcd_field_t|int)\b/g,
-    '<span class="c-ty">$1</span>'
-  );
-  s = s.replace(/\bPROGMEM\b/g, '<span class="c-fn">PROGMEM</span>');
-  s = s.replace(/"([^"]*)"/g, '<span class="c-st">"$1"</span>');
-  s = s.replace(/\b(0x[0-9a-fA-F]+|\d+)\b/g, '<span class="c-nu">$1</span>');
-  return s;
+  const trimmed = line.trimStart();
+  if (trimmed.startsWith('/*') || trimmed.startsWith('//')) {
+    return `<span class="c-cm">${esc(line)}</span>`;
+  }
+
+  let out = '';
+  let i = 0;
+  while (i < line.length) {
+    const ch = line[i];
+
+    if (ch === '#') {
+      let j = i + 1;
+      while (j < line.length && /\w/.test(line[j])) j++;
+      out += `<span class="c-pp">${esc(line.slice(i, j))}</span>`;
+      i = j;
+      continue;
+    }
+
+    if (ch === '"') {
+      let j = i + 1;
+      while (j < line.length && line[j] !== '"') {
+        if (line[j] === '\\') j++;
+        j++;
+      }
+      j++;
+      out += `<span class="c-st">${esc(line.slice(i, j))}</span>`;
+      i = j;
+      continue;
+    }
+
+    if (/[a-zA-Z_]/.test(ch)) {
+      let j = i;
+      while (j < line.length && /\w/.test(line[j])) j++;
+      const word = line.slice(i, j);
+      if (KW.has(word)) {
+        out += `<span class="c-kw">${esc(word)}</span>`;
+      } else if (TY.has(word)) {
+        out += `<span class="c-ty">${esc(word)}</span>`;
+      } else if (word === 'PROGMEM') {
+        out += `<span class="c-fn">${esc(word)}</span>`;
+      } else {
+        out += esc(word);
+      }
+      i = j;
+      continue;
+    }
+
+    if (line[i] === '0' && line[i + 1] === 'x') {
+      let j = i + 2;
+      while (j < line.length && /[0-9a-fA-F]/.test(line[j])) j++;
+      out += `<span class="c-nu">${esc(line.slice(i, j))}</span>`;
+      i = j;
+      continue;
+    }
+
+    if (/\d/.test(ch)) {
+      let j = i;
+      while (j < line.length && /\d/.test(line[j])) j++;
+      out += `<span class="c-nu">${esc(line.slice(i, j))}</span>`;
+      i = j;
+      continue;
+    }
+
+    out += esc(ch);
+    i++;
+  }
+
+  return out;
 }

@@ -2,7 +2,7 @@ import { useStore } from '../store'
 import { DISP } from '../constants'
 import { generateHeader } from '../headerGen'
 
-export default function Header() {
+export default function Header({ onGuide }) {
   const { state, dispatch } = useStore()
   const { dt, screens } = state
 
@@ -41,6 +41,7 @@ export default function Header() {
       <span className="hdr-count">
         {screens.length} screen{screens.length !== 1 ? 's' : ''}
       </span>
+      <button className="hdr-btn" onClick={onGuide} title="How to use in Arduino">? Arduino Guide</button>
       <button className="hdr-btn" onClick={copyHeader}>Copy header</button>
       <button className="hdr-btn primary" onClick={downloadHeader}>↓ Download .h</button>
     </header>

@@ -71,10 +71,16 @@ export default function LcdCanvas({ onInsertPlaceholder, onSpecialBtn }) {
         drawPixelChar(ctx, code, cx, cy, onCol, offCol, cgram)
 
         if (ph && c === ph.col) {
-          const label = '[' + ph.name
-          ctx.font = '7px monospace'
-          ctx.fillStyle = 'rgba(251,146,60,0.9)'
-          ctx.fillText(label.slice(0, 4), cx + 1, cy + 7)
+          const spanW = ph.width * CW - 2
+          const label = `[${ph.name}]`
+          // Dark semi-transparent backing so label is readable over any char
+          ctx.fillStyle = 'rgba(20,8,0,0.72)'
+          ctx.fillRect(cx + 1, cy + CH - 13, spanW, 11)
+          ctx.font = 'bold 9px "JetBrains Mono", monospace'
+          ctx.fillStyle = '#fb923c'
+          ctx.textBaseline = 'bottom'
+          ctx.fillText(label, cx + 3, cy + CH - 3, spanW - 4)
+          ctx.textBaseline = 'alphabetic'
         }
       }
     }

@@ -145,6 +145,20 @@ function reducer(state, action) {
         }),
       };
 
+    case 'EDIT_PLACEHOLDER':
+      return {
+        ...state,
+        screens: state.screens.map((s, si) => {
+          if (si !== state.activeScreen) return s;
+          return {
+            ...s,
+            placeholders: s.placeholders.map((p, i) =>
+              i === action.index ? { ...p, ...action.changes } : p
+            ),
+          };
+        }),
+      };
+
     case 'TOGGLE_CGRAM_PIXEL': {
       const cgram = state.cgram.map((g, i) => {
         if (i !== action.slot) return g;
