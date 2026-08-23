@@ -20,6 +20,11 @@ html,body,#root{height:100%;background:#0d0d0d;color:#c8d8c0;font-family:'Inter'
 .hdr-btn:hover{border-color:#2a3a2a;color:#b8d8b8}
 .hdr-btn.primary{background:#166534;border-color:#166534;color:#bbf7d0}
 .hdr-btn.primary:hover{background:#15803d}
+.hdr-label{font-size:11px;color:#4a6a4a;white-space:nowrap}
+.hdr-select{padding:4px 8px;border-radius:5px;font-size:12px;font-family:inherit;background:#181f18;border:1px solid #1e2a1e;color:#9ab89a;cursor:pointer;outline:none}
+.hdr-select:hover{border-color:#2a3a2a}
+.hdr-addr-input{width:58px;padding:4px 7px;border-radius:5px;font-size:12px;font-family:'JetBrains Mono',monospace;background:#181f18;border:1px solid #1e2a1e;color:#9ab89a;outline:none}
+.hdr-addr-input:focus{border-color:#166534}
 
 /* Body */
 .body{display:grid;grid-template-columns:200px 1fr 260px;overflow:hidden}

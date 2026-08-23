@@ -32,6 +32,8 @@ function buildInitialState() {
     cursorRow: 0,
     editingCgramSlot: -1,
     codeOpen: true,
+    targetLib: 'liquidcrystal_i2c',
+    i2cAddr: '0x27',
   };
 }
 
@@ -187,6 +189,12 @@ function reducer(state, action) {
 
     case 'TOGGLE_CODE':
       return { ...state, codeOpen: !state.codeOpen };
+
+    case 'SET_TARGET_LIB':
+      return { ...state, targetLib: action.lib };
+
+    case 'SET_I2C_ADDR':
+      return { ...state, i2cAddr: action.addr };
 
     default:
       return state;
