@@ -230,6 +230,53 @@ function reducer(state, action) {
     case 'REMOVE_TRANSITION':
       return { ...state, transitions: state.transitions.filter((_, i) => i !== action.index) };
 
+    case 'LOAD_EXAMPLE': {
+      const cols = 16, rows = 2;
+
+      // Screen 0: Home (main) — shows live temp + current setpoint
+      // Row 0: "Temp:   [temp] C    "
+      // Row 1: "SP: [sp ] C  #=Set  "
+      const home = makeScreen('Home', cols, rows, 'main');
+      'Temp:   '.split('').forEach((c, i) => { home.cells[0][i] = c; });
+      home.cells[0][12] = 'C';
+      home.placeholders.push({ name: 'temp', col: 7, row: 0, width: 4 });
+      'SP: '.split('').forEach((c, i) => { home.cells[1][i] = c; });
+      home.cells[1][7] = 'C';
+      '#=Set'.split('').forEach((c, i) => { home.cells[1][9 + i] = c; });
+      home.placeholders.push({ name: 'sp', col: 4, row: 1, width: 2 });
+
+      // Screen 1: SetTemp (settings) — editable setpoint 10–99
+      // Row 0: "Set Temp:       "
+      // Row 1: " Value: [   ] C "
+      const setTempSc = makeScreen('SetTemp', cols, rows, 'settings');
+      'Set Temp:'.split('').forEach((c, i) => { setTempSc.cells[0][i] = c; });
+      ' Value: '.split('').forEach((c, i) => { setTempSc.cells[1][i] = c; });
+      setTempSc.cells[1][12] = 'C';
+      setTempSc.placeholders.push({
+        name: 'setTemp', col: 8, row: 1, width: 3,
+        editable: true, spMin: 10, spMax: 99, spStep: 1, spDefault: 22,
+      });
+
+      return {
+        ...buildInitialState(),
+        dt: '16x2',
+        activeScreen: 0,
+        screens: [home, setTempSc],
+        inputMethod: '4x3kpd',
+        navPins: {
+          up: 2, down: 3, select: 4, back: 5,
+          clk: 2, dt: 3, sw: 4,
+          kpdR0: 2, kpdR1: 3, kpdR2: 4, kpdR3: 5,
+          kpdC0: 6, kpdC1: 7, kpdC2: 8, kpdC3: 9,
+        },
+        transitions: [
+          { from: 0, event: 'select', to: 1 },
+          { from: 1, event: 'back',   to: 0 },
+        ],
+        codeOpen: false,
+      };
+    }
+
     default:
       return state;
   }

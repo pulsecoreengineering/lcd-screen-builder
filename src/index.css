@@ -345,3 +345,7 @@ canvas.lcd-canvas:focus{box-shadow:0 0 0 2px rgba(74,222,128,0.2)}
 
 /* Badge for input method */
 .sim-method-badge{font-size:10px;font-weight:600;background:#0a2a1a;color:#4ade80;padding:2px 7px;border-radius:3px;border:1px solid #1a4a2a;margin-left:8px;letter-spacing:.04em;font-family:'JetBrains Mono',monospace}
+
+/* ── Example button ── */
+.example-btn{padding:5px 12px;border-radius:5px;font-size:12px;font-weight:500;cursor:pointer;background:#1a2a3a;border:1px solid #2a4a5a;color:#7ab8c8;transition:all .15s;font-family:inherit}
+.example-btn:hover{background:#1e3a4a;border-color:#3a5a6a;color:#a8d8e8}

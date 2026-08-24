@@ -14,7 +14,7 @@ import NavPanel from './components/NavPanel'
 import SimPanel from './components/SimPanel'
 
 export default function App() {
-  const { state } = useStore()
+  const { state, dispatch } = useStore()
   const { dt, activeScreen, screens, cursorCol, cursorRow, cgram } = state
   const cfg = DISP[dt]
   const screen = screens[activeScreen]
@@ -70,6 +70,9 @@ export default function App() {
               </button>
               <button ref={specialBtnRef} className="special-btn" onClick={openSpecial}>
                 ⊞ Special chars
+              </button>
+              <button className="example-btn" onClick={() => dispatch({ type: 'LOAD_EXAMPLE' })}>
+                ⚡ Load example
               </button>
               <button className="sim-launch-btn" onClick={() => setSimOpen(true)}>
                 ▶ Simulate
